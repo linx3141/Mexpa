@@ -1,8 +1,8 @@
 import org.gradle.api.Project
 
 object ProjectConfig {
-    const val APP_NAME = "Mishka"
-    const val PACKAGE_NAME = "top.yukonga.mishka"
+    const val APP_NAME = "Mexpa"
+    const val PACKAGE_NAME = "com.linx3141.mexpa"
     const val VERSION_NAME = "1.0.0"
 
     object Android {

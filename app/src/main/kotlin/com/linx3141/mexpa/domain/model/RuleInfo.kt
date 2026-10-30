@@ -1,0 +1,27 @@
+package com.linx3141.mexpa.domain.model
+
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class RulesResponse(
+    val rules: List<RuleInfo> = emptyList(),
+)
+
+@Serializable
+data class RuleInfo(
+    val index: Int = 0,
+    val type: String = "",
+    val payload: String = "",
+    val proxy: String = "",
+    val size: Int = 0,
+    val extra: RuleExtra? = null,
+)
+
+@Serializable
+data class RuleExtra(
+    val disabled: Boolean = false,
+    val hitCount: Long = 0,
+    val hitAt: String = "",
+    val missCount: Long = 0,
+    val missAt: String = "",
+)

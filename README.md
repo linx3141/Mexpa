@@ -1,8 +1,8 @@
 <div align="center">
 
-# Mishka
+# Mexpa
 
-**基于 [miuix](https://github.com/miuix-kotlin-multiplatform/miuix) 和 [mihomo](https://github.com/MetaCubeX/mihomo) 的 Android 代理客户端**
+**基于 [Mishka](https://github.com/YuKongA/Mishka) 的 Android 代理客户端，UI 使用 [miuix](https://github.com/miuix-kotlin-multiplatform/miuix)，内核使用 [mihomo](https://github.com/MetaCubeX/mihomo)**
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![minSdk](https://img.shields.io/badge/minSdk-31-3DDC84?logo=android&logoColor=white)](#)
@@ -10,23 +10,27 @@
 
 </div>
 
+> Mexpa 是 [Mishka](https://github.com/YuKongA/Mishka)（原作者 YuKongA）的衍生项目，基于原项目继续开发。
+> 应用包名 / applicationId 为 `com.linx3141.mexpa`；从旧版 `top.yukonga.mishka` 升级不会自动迁移数据，
+> 请先用旧版做本地/WebDAV 备份，再在新版恢复。
+
 ---
 
 ## 简介
 
-采用 [mihomo](https://github.com/MetaCubeX/mihomo)（Clash.Meta）内核的 Android 代理客户端，UI 使用 [miuix](https://github.com/miuix-kotlin-multiplatform/miuix) + Jetpack Compose 构建，数据层 Room + Ktor + Koin。内核以子进程 + JNI 双通道集成，支持 **VPN**、**ROOT TUN**、**ROOT TPROXY** 三种隧道模式
+Mexpa 是采用 [mihomo](https://github.com/MetaCubeX/mihomo)（Clash.Meta）内核的 Android 代理客户端，UI 使用 [miuix](https://github.com/miuix-kotlin-multiplatform/miuix) + Jetpack Compose 构建，数据层 Room + Ktor + Koin。内核以子进程 + JNI 双通道集成，支持 **VPN**、**ROOT TUN**、**ROOT TPROXY** 三种隧道模式
 
 ## 特性
 
 **代理与内核**
 
-- 内置 [mihomo](https://github.com/MetaCubeX/mihomo) 内核（Mishka fork），统一为单个 `libmihomo.so` 同时承担 runtime 入口与订阅导入 JNI 门面
+- 内置 [mihomo](https://github.com/MetaCubeX/mihomo) 内核（Mishka 项目的 fork），统一为单个 `libmihomo.so` 同时承担 runtime 入口与订阅导入 JNI 门面
 - 三种隧道模式，随时切换：
   - **VPN** —— 无需 Root，基于系统 `VpnService`；IPv4/IPv6 地址与核心同步，独立系统 HTTP 代理不受订阅端口和认证影响，支持按包名进程规则
   - **ROOT TUN** —— Root 自建 TUN，`auto-route` + 大包 GSO 聚合
   - **ROOT TPROXY** —— 内核态透明代理（iptables + fwmark），性能接近直连
 - **分应用代理** —— 白/黑名单，三模式各自走 VpnService / `include-package` / iptables uid-owner；非“允许全部应用”模式支持下拉刷新已安装应用列表，并按当前勾选项优先重排
-- VPN“仅允许选中应用”需至少一个已安装且不是 Mishka 的应用；空名单拒绝启动，不会退化为全应用代理
+- VPN“仅允许选中应用”需至少一个已安装且不是 Mexpa 的应用；空名单拒绝启动，不会退化为全应用代理
 - **热点流量处置**（ROOT）—— 支持绕过代理或透明代理（TPROXY）两种模式
 - **系统 DNS 同步** —— 启动时初始化转发子进程；监听非 VPN 网络的 DNS 变化，同步更新 JNI 与运行时核心并刷新缓存，保留 IPv6 link-local DNS 的数字 scope ID
 - Android 跨用户/工作资料共用 loopback 入口时，可通过 ADB 显式授予 `android.permission.INTERACT_ACROSS_USERS`；普通单用户使用无需该权限
@@ -52,22 +56,22 @@
 
 ## 自动化
 
-Tasker、快捷方式、adb 等外部工具可经 intent 启停代理，无需打开 Mishka。
+Tasker、快捷方式、adb 等外部工具可经 intent 启停代理，无需打开 Mexpa。
 
 **默认关闭**：需在 设置 → 自动化 打开「允许外部应用控制」，否则下面这些 intent 一律静默返回 `RESULT_CANCELED`（不弹提示，避免被调用方轮询时反复打扰）。开关只作用于四个导出 action —— 磁贴、通知等用户主动操作的入口不经过它，关掉也不受影响。
 
 - **启动 / 停止 / 切换 / 重启代理** —— 向 `ExternalControlActivity` 发送显式 intent，action 取以下之一：
-  - `top.yukonga.mishka.action.START_PROXY`
-  - `top.yukonga.mishka.action.STOP_PROXY`
-  - `top.yukonga.mishka.action.TOGGLE_PROXY`
-  - `top.yukonga.mishka.action.RESTART_PROXY` —— 仅在代理运行中生效（与界面上的重启按钮一致）；未运行时只提示、不顺手启动
+  - `com.linx3141.mexpa.action.START_PROXY`
+  - `com.linx3141.mexpa.action.STOP_PROXY`
+  - `com.linx3141.mexpa.action.TOGGLE_PROXY`
+  - `com.linx3141.mexpa.action.RESTART_PROXY` —— 仅在代理运行中生效（与界面上的重启按钮一致）；未运行时只提示、不顺手启动
 
 ```bash
-adb shell am start -a top.yukonga.mishka.action.TOGGLE_PROXY \
-    -n top.yukonga.mishka/.ExternalControlActivity
+adb shell am start -a com.linx3141.mexpa.action.TOGGLE_PROXY \
+    -n com.linx3141.mexpa/.ExternalControlActivity
 ```
 
-跳板不显示界面，也不会把 Mishka 的界面带到前台。是否已在运行、订阅是否可用等判定与界面按钮完全一致。
+跳板不显示界面，也不会把 Mexpa 的界面带到前台。是否已在运行、订阅是否可用等判定与界面按钮完全一致。
 
 ## 构建
 
@@ -81,9 +85,8 @@ adb shell am start -a top.yukonga.mishka.action.TOGGLE_PROXY \
 ### 步骤
 
 ```bash
-# 1. 克隆仓库
-git clone https://github.com/YuKongA/Mishka.git
-cd Mishka
+# 1. 进入 Mexpa 仓库根目录
+cd Mexpa
 
 # 2. 初始化子模块（mihomo fork + scripta 编辑器）
 git submodule update --init --recursive
@@ -105,9 +108,11 @@ git submodule update --init --recursive
 
 - [mihomo](https://github.com/MetaCubeX/mihomo) —— 代理核心
 - [miuix](https://github.com/miuix-kotlin-multiplatform/miuix) —— UI 组件库
+- [Mishka](https://github.com/YuKongA/Mishka) —— 本项目的上游项目与实现基础
+- [KernelSU](https://github.com/tiann/KernelSU) —— 界面结构参考
 - [sparkle](https://github.com/xishang0128/sparkle) / [Clash Meta for Android](https://github.com/MetaCubeX/ClashMetaForAndroid) —— 实现参考
 - [scripta](https://github.com/YuKongA/scripta) —— 代码编辑器
 
 ## 许可证
 
-本项目以 [GPL-3.0](LICENSE) 许可证开源；与内核 [mihomo](https://github.com/MetaCubeX/mihomo) 一致
+本项目基于 [Mishka](https://github.com/YuKongA/Mishka) 开发，以 [GPL-3.0](LICENSE) 许可证开源；与内核 [mihomo](https://github.com/MetaCubeX/mihomo) 一致

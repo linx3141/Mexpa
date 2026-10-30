@@ -28,6 +28,8 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.profileinstaller)
     implementation(libs.material.icons.extended)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.material.kolor)
     implementation(libs.hiddenapibypass)
     implementation(libs.quickie.bundled)
     implementation(libs.scripta.editor)
@@ -51,6 +53,8 @@ val keystoreFile = keystorePath?.let { path ->
 }
 
 @Suppress("UnstableApiUsage")
+val mihomoVersion = providers.gradleProperty("mihomo.version").orElse("dev").get()
+
 android {
     if (keystoreFile != null) {
         signingConfigs {
@@ -92,6 +96,7 @@ android {
         targetSdk = ProjectConfig.Android.TARGET_SDK
         versionName = ProjectConfig.VERSION_NAME
         versionCode = gitVersionCode
+        buildConfigField("String", "MIHOMO_VERSION", "\"$mihomoVersion\"")
     }
     dependenciesInfo {
         includeInApk = false
@@ -214,7 +219,6 @@ tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }.con
 val mihomoSubmoduleDir = rootProject.layout.projectDirectory.dir("mihomo")
 val mishkaCoreSourceDir = rootProject.layout.projectDirectory.dir("app/src/main/native/mishka_core")
 val mihomoBuildTags = listOf("cmfa", "mishka", "with_gvisor")
-val mihomoVersion = providers.gradleProperty("mihomo.version").orElse("dev").get()
 val mihomoVersionPath = "github.com/metacubex/mihomo/constant.Version"
 val ndkDirectoryProvider = androidComponents.sdkComponents.ndkDirectory
 

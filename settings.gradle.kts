@@ -1,6 +1,6 @@
 @file:Suppress("UnstableApiUsage")
 
-rootProject.name = "Mishka"
+rootProject.name = "Mexpa"
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 

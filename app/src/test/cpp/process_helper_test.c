@@ -92,12 +92,12 @@ static int test_nanosleep(const struct timespec *duration, struct timespec *rema
 #undef nanosleep
 
 static int stop_child(pid_t pid, int grace_ms, int force_ms) {
-    return Java_top_yukonga_mishka_service_ProcessHelper_nativeStop(
+    return Java_com_linx3141_mexpa_service_ProcessHelper_nativeStop(
             NULL, NULL, pid, grace_ms, force_ms);
 }
 
 static int child_is_alive(pid_t pid) {
-    return Java_top_yukonga_mishka_service_ProcessHelper_nativeIsAlive(NULL, NULL, pid);
+    return Java_com_linx3141_mexpa_service_ProcessHelper_nativeIsAlive(NULL, NULL, pid);
 }
 
 static void reset_probes(void) {

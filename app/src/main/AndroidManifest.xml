@@ -77,22 +77,22 @@
             android:taskAffinity=""
             android:theme="@style/Theme.Mishka.Transparent">
             <intent-filter>
-                <action android:name="top.yukonga.mishka.action.START_PROXY" />
+                <action android:name="com.linx3141.mexpa.action.START_PROXY" />
 
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <intent-filter>
-                <action android:name="top.yukonga.mishka.action.STOP_PROXY" />
+                <action android:name="com.linx3141.mexpa.action.STOP_PROXY" />
 
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <intent-filter>
-                <action android:name="top.yukonga.mishka.action.TOGGLE_PROXY" />
+                <action android:name="com.linx3141.mexpa.action.TOGGLE_PROXY" />
 
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <intent-filter>
-                <action android:name="top.yukonga.mishka.action.RESTART_PROXY" />
+                <action android:name="com.linx3141.mexpa.action.RESTART_PROXY" />
 
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
@@ -164,7 +164,7 @@
                 <action android:name="android.intent.action.TIME_SET" />
             </intent-filter>
             <intent-filter>
-                <action android:name="top.yukonga.mishka.action.PROFILE_REQUEST_UPDATE" />
+                <action android:name="com.linx3141.mexpa.action.PROFILE_REQUEST_UPDATE" />
                 <data android:scheme="uuid" />
             </intent-filter>
         </receiver>

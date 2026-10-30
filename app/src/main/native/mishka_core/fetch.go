@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"mime"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -26,7 +27,6 @@ import (
 
 	"github.com/metacubex/bbolt"
 	"github.com/metacubex/mihomo/common/utils"
-	clashHttp "github.com/metacubex/mihomo/component/http"
 	"github.com/metacubex/mihomo/config"
 )
 
@@ -126,7 +126,7 @@ func runFetchAndValid(
 			Progress:    -1,
 			MaxProgress: -1,
 		})
-		if err := fetchURL(ctx, u, configPath, result, effectiveUA); err != nil {
+		if err := fetchURL(ctx, u, configPath, result, effectiveUA, httpProxy); err != nil {
 			return nil, err
 		}
 	}
@@ -144,7 +144,7 @@ func runFetchAndValid(
 
 	patchProvidersPath(rawCfg, workDir)
 
-	prefetchProviders(ctx, token, rawCfg, effectiveUA, workDir, result)
+	prefetchProviders(ctx, token, rawCfg, effectiveUA, workDir, result, httpProxy)
 
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
@@ -171,7 +171,30 @@ func setProgress(token int32, p FetchProgress) {
 	}
 }
 
-func fetchURL(ctx context.Context, u *url.URL, dest string, result *FetchResult, userAgent string) error {
+// 订阅请求不能走 mihomo 的 dialer：app 自己绕过 TUN 时直连不到目标。
+// mihomo component/http 的 transport 不读 ProxyFromEnvironment，所以必须显式
+// 把本机 mixed-port 设为 HTTP 代理，而不是只设置 HTTPS_PROXY 环境变量。
+func newSubscriptionHTTPClient(proxyURL string) (*http.Client, error) {
+	transport := &http.Transport{
+		MaxIdleConns:        10,
+		IdleConnTimeout:     30 * time.Second,
+		TLSHandshakeTimeout: 10 * time.Second,
+		DialContext: (&net.Dialer{
+			Timeout:   15 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+	}
+	if proxyURL != "" {
+		parsed, err := url.Parse(proxyURL)
+		if err != nil {
+			return nil, fmt.Errorf("parse subscription proxy: %w", err)
+		}
+		transport.Proxy = http.ProxyURL(parsed)
+	}
+	return &http.Client{Transport: transport}, nil
+}
+
+func fetchURL(ctx context.Context, u *url.URL, dest string, result *FetchResult, userAgent string, proxyURL string) error {
 	scheme := strings.ToLower(u.Scheme)
 	if scheme != "http" && scheme != "https" {
 		return fmt.Errorf("unsupported scheme %s", u.Scheme)
@@ -180,8 +203,17 @@ func fetchURL(ctx context.Context, u *url.URL, dest string, result *FetchResult,
 	subCtx, cancel := context.WithTimeout(ctx, fetchTimeout)
 	defer cancel()
 
-	header := http.Header{"User-Agent": []string{userAgent}}
-	resp, err := clashHttp.HttpRequest(subCtx, u.String(), http.MethodGet, header, nil)
+	req, err := http.NewRequestWithContext(subCtx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("User-Agent", userAgent)
+	client, err := newSubscriptionHTTPClient(proxyURL)
+	if err != nil {
+		return err
+	}
+	defer client.CloseIdleConnections()
+	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("http request: %w", err)
 	}
@@ -209,7 +241,7 @@ func fetchURL(ctx context.Context, u *url.URL, dest string, result *FetchResult,
 }
 
 // Content-Disposition 的 filename 常携带订阅名（subconverter / 机场面板惯例）。
-// mime.ParseMediaType 原生解码 RFC 5987 的 filename*=UTF-8''<name> 扩展参数。
+// mime.ParseMediaType 原生解码 RFC 5987 的 filename*=UTF-8”<name> 扩展参数。
 func dispositionFileName(header string) string {
 	if header == "" {
 		return ""
@@ -382,7 +414,7 @@ func parseProviderInfo(provider map[string]any) (http.Header, int64) {
 }
 
 // best-effort：单个下载失败不阻塞 Parse；缺 provider 时 Parse 自己会报错。
-func prefetchProviders(ctx context.Context, token int32, cfg *config.RawConfig, userAgent string, workDir string, result *FetchResult) {
+func prefetchProviders(ctx context.Context, token int32, cfg *config.RawConfig, userAgent string, workDir string, result *FetchResult, proxyURL string) {
 	type item struct {
 		key       string
 		url       string
@@ -445,7 +477,7 @@ func prefetchProviders(ctx context.Context, token int32, cfg *config.RawConfig, 
 				return
 			}
 			if u, err := url.Parse(it.url); err == nil {
-				rawUserinfo, _ := fetchProvider(ctx, u, it.dest, userAgent, it.header, it.sizeLimit)
+				rawUserinfo, _ := fetchProvider(ctx, u, it.dest, userAgent, it.header, it.sizeLimit, proxyURL)
 				if rawUserinfo != "" && it.kind == "proxies" {
 					info := &FetchResult{}
 					parseUserinfo(rawUserinfo, info)
@@ -553,7 +585,7 @@ func writeFileAtomic(dest string, src io.Reader) (int64, error) {
 	return n, nil
 }
 
-func fetchProvider(ctx context.Context, u *url.URL, dest string, userAgent string, customHeader http.Header, sizeLimit int64) (string, error) {
+func fetchProvider(ctx context.Context, u *url.URL, dest string, userAgent string, customHeader http.Header, sizeLimit int64, proxyURL string) (string, error) {
 	subCtx, cancel := context.WithTimeout(ctx, fetchTimeout)
 	defer cancel()
 	header := http.Header{}
@@ -563,7 +595,17 @@ func fetchProvider(ctx context.Context, u *url.URL, dest string, userAgent strin
 	if header.Get("User-Agent") == "" {
 		header.Set("User-Agent", userAgent)
 	}
-	resp, err := clashHttp.HttpRequest(subCtx, u.String(), http.MethodGet, header, nil)
+	req, err := http.NewRequestWithContext(subCtx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header = header
+	client, err := newSubscriptionHTTPClient(proxyURL)
+	if err != nil {
+		return "", err
+	}
+	defer client.CloseIdleConnections()
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}

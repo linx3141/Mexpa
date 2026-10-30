@@ -76,6 +76,8 @@
 
     <!-- Navigation -->
     <string name="nav_home">首頁</string>
+    <string name="nav_rail_expand">展開側邊導覽列</string>
+    <string name="nav_rail_collapse">收合側邊導覽列</string>
     <string name="nav_proxy">代理</string>
     <string name="nav_subscription">訂閱</string>
     <string name="nav_settings">設定</string>
@@ -329,6 +331,13 @@
     <string name="settings_theme_group_interface">介面與效果</string>
     <string name="settings_theme_group_navigation">導覽</string>
     <string name="settings_theme_summary">顏色、模糊效果與介面縮放，導覽與手勢選項</string>
+    <string name="settings_theme_ui_mode">介面風格</string>
+    <string name="settings_theme_ui_mode_miuix">Miuix（MIUI / HyperOS）</string>
+    <string name="settings_theme_ui_mode_miuix_summary">保持現有外觀</string>
+    <string name="settings_theme_ui_mode_material">Material 3 Expressive</string>
+    <string name="settings_theme_ui_mode_material_summary">M3 Expressive 元件</string>
+    <string name="settings_theme_proxy_grid_segmented">節點網格分段</string>
+    <string name="settings_theme_proxy_grid_segmented_summary">代理節點使用相連的二維分段網格；關閉後每個節點顯示為獨立卡片</string>
     <string name="settings_theme_mode">主題模式</string>
     <string name="settings_theme_system">跟隨系統</string>
     <string name="settings_theme_light">淺色</string>
@@ -344,6 +353,8 @@
     <string name="settings_theme_blur_style_progressive_summary">頂部漸強模糊</string>
     <string name="settings_theme_density_scale">介面縮放</string>
     <string name="settings_theme_density_scale_summary">調整全域顯示比例（80% - 110%）</string>
+    <string name="settings_theme_animation_speed">動畫速度</string>
+    <string name="settings_theme_animation_speed_summary">調整介面、頁面切換與返回手勢速度（50% - 200%）</string>
     <string name="settings_theme_floating_bottom_bar">懸浮底部列</string>
     <string name="settings_theme_floating_bottom_bar_summary">在手機版面中使用懸浮底部導覽列</string>
     <string name="settings_theme_floating_bottom_bar_style">懸浮底部列樣式</string>
@@ -357,6 +368,9 @@
     <string name="settings_theme_pager_gesture_cross_axis">跨軸攔截</string>
     <string name="settings_theme_pager_gesture_ios_like">iOS 風格</string>
     <string name="settings_theme_palette_style">色彩風格</string>
+    <string name="settings_theme_color_spec">色彩規範</string>
+    <string name="settings_theme_color_spec_2021">Material 3（2021）</string>
+    <string name="settings_theme_color_spec_2025">M3 Expressive（2025）</string>
     <string name="settings_theme_palette_tonal_spot">色調點（TonalSpot）</string>
     <string name="settings_theme_palette_neutral">中性（Neutral）</string>
     <string name="settings_theme_palette_vibrant">鮮明（Vibrant）</string>

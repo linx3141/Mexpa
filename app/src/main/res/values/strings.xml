@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name" translatable="false">Mishka</string>
+    <string name="app_name" translatable="false">Mexpa</string>
 
     <!-- Notification Channels -->
     <string name="channel_vpn_name">VPN Service Status</string>
@@ -78,6 +78,8 @@
 
     <!-- Navigation -->
     <string name="nav_home">Home</string>
+    <string name="nav_rail_expand">Expand navigation rail</string>
+    <string name="nav_rail_collapse">Collapse navigation rail</string>
     <string name="nav_proxy">Proxy</string>
     <string name="nav_subscription">Subscriptions</string>
     <string name="nav_settings">Settings</string>
@@ -331,6 +333,13 @@
     <string name="settings_theme_group_interface">Interface &amp; Effects</string>
     <string name="settings_theme_group_navigation">Navigation</string>
     <string name="settings_theme_summary">Color, blur effects and interface scale; navigation and gesture options</string>
+    <string name="settings_theme_ui_mode">UI Style</string>
+    <string name="settings_theme_ui_mode_miuix">Miuix (MIUI / HyperOS)</string>
+    <string name="settings_theme_ui_mode_miuix_summary">Current look</string>
+    <string name="settings_theme_ui_mode_material">Material 3 Expressive</string>
+    <string name="settings_theme_ui_mode_material_summary">Material 3 Expressive components</string>
+    <string name="settings_theme_proxy_grid_segmented">Segmented node grid</string>
+    <string name="settings_theme_proxy_grid_segmented_summary">Use a connected 2D segmented grid for proxy nodes; turn off for individual cards</string>
     <string name="settings_theme_mode">Theme Mode</string>
     <string name="settings_theme_system">Follow System</string>
     <string name="settings_theme_light">Light</string>
@@ -346,6 +355,8 @@
     <string name="settings_theme_blur_style_progressive_summary">Gradient blur, strongest at the top edge</string>
     <string name="settings_theme_density_scale">Interface Scale</string>
     <string name="settings_theme_density_scale_summary">Adjust the global display scale (80% - 110%)</string>
+    <string name="settings_theme_animation_speed">Animation Speed</string>
+    <string name="settings_theme_animation_speed_summary">Adjust interface, page transition and back gesture speed (50% - 200%)</string>
     <string name="settings_theme_floating_bottom_bar">Floating Bottom Bar</string>
     <string name="settings_theme_floating_bottom_bar_summary">Use a floating bottom navigation bar on phones</string>
     <string name="settings_theme_floating_bottom_bar_style">Floating Bottom Bar Style</string>
@@ -359,6 +370,9 @@
     <string name="settings_theme_pager_gesture_cross_axis">Cross-axis</string>
     <string name="settings_theme_pager_gesture_ios_like">iOS-like</string>
     <string name="settings_theme_palette_style">Color Style</string>
+    <string name="settings_theme_color_spec">Color Spec</string>
+    <string name="settings_theme_color_spec_2021">Material 3 (2021)</string>
+    <string name="settings_theme_color_spec_2025">Material 3 Expressive (2025)</string>
     <string name="settings_theme_palette_tonal_spot">Tonal Spot (TonalSpot)</string>
     <string name="settings_theme_palette_neutral">Neutral (Neutral)</string>
     <string name="settings_theme_palette_vibrant">Vibrant (Vibrant)</string>

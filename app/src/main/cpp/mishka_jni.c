@@ -26,7 +26,7 @@ static jstring go_cstr_to_jstring(JNIEnv *env, char *s) {
 }
 
 JNIEXPORT void JNICALL
-Java_top_yukonga_mishka_data_bridge_MishkaCoreBridge_nativeCoreInit(
+Java_com_linx3141_mexpa_data_bridge_MishkaCoreBridge_nativeCoreInit(
         JNIEnv *env, jclass clazz, jstring jHomeDir, jstring jUserAgent) {
     char *homeDir = jstring_to_cstr(env, jHomeDir);
     char *userAgent = jstring_to_cstr(env, jUserAgent);
@@ -36,7 +36,7 @@ Java_top_yukonga_mishka_data_bridge_MishkaCoreBridge_nativeCoreInit(
 }
 
 JNIEXPORT jstring JNICALL
-Java_top_yukonga_mishka_data_bridge_MishkaCoreBridge_nativeFetchAndValid(
+Java_com_linx3141_mexpa_data_bridge_MishkaCoreBridge_nativeFetchAndValid(
         JNIEnv *env, jclass clazz,
         jstring jWorkDir, jstring jUrl, jboolean jForce, jstring jHttpProxy, jstring jUserAgent,
         jint jToken) {
@@ -62,20 +62,20 @@ Java_top_yukonga_mishka_data_bridge_MishkaCoreBridge_nativeFetchAndValid(
 }
 
 JNIEXPORT void JNICALL
-Java_top_yukonga_mishka_data_bridge_MishkaCoreBridge_nativeCancel(
+Java_com_linx3141_mexpa_data_bridge_MishkaCoreBridge_nativeCancel(
         JNIEnv *env, jclass clazz, jint jToken) {
     mishkaCancel((int) jToken);
 }
 
 JNIEXPORT jstring JNICALL
-Java_top_yukonga_mishka_data_bridge_MishkaCoreBridge_nativeQueryProgress(
+Java_com_linx3141_mexpa_data_bridge_MishkaCoreBridge_nativeQueryProgress(
         JNIEnv *env, jclass clazz, jint jToken) {
     char *progress = mishkaQueryProgress((int) jToken);
     return go_cstr_to_jstring(env, progress);
 }
 
 JNIEXPORT void JNICALL
-Java_top_yukonga_mishka_data_bridge_MishkaCoreBridge_nativeSetAgeSecretKey(
+Java_com_linx3141_mexpa_data_bridge_MishkaCoreBridge_nativeSetAgeSecretKey(
         JNIEnv *env, jclass clazz, jstring jKey) {
     char *key = jstring_to_cstr(env, jKey);
     mishkaSetAgeSecretKey(key ? key : "");
@@ -83,21 +83,21 @@ Java_top_yukonga_mishka_data_bridge_MishkaCoreBridge_nativeSetAgeSecretKey(
 }
 
 JNIEXPORT jstring JNICALL
-Java_top_yukonga_mishka_data_bridge_MishkaCoreBridge_nativeGenAgeKeyPair(
+Java_com_linx3141_mexpa_data_bridge_MishkaCoreBridge_nativeGenAgeKeyPair(
         JNIEnv *env, jclass clazz) {
     char *result = mishkaGenAgeKeyPair();
     return go_cstr_to_jstring(env, result);
 }
 
 JNIEXPORT jstring JNICALL
-Java_top_yukonga_mishka_data_bridge_MishkaCoreBridge_nativeGenAgeHybridKeyPair(
+Java_com_linx3141_mexpa_data_bridge_MishkaCoreBridge_nativeGenAgeHybridKeyPair(
         JNIEnv *env, jclass clazz) {
     char *result = mishkaGenAgeHybridKeyPair();
     return go_cstr_to_jstring(env, result);
 }
 
 JNIEXPORT jstring JNICALL
-Java_top_yukonga_mishka_data_bridge_MishkaCoreBridge_nativeValidateTransform(
+Java_com_linx3141_mexpa_data_bridge_MishkaCoreBridge_nativeValidateTransform(
         JNIEnv *env, jclass clazz, jstring jWorkDir, jstring jTransform, jstring jKey) {
     char *workDir = jstring_to_cstr(env, jWorkDir);
     char *transform = jstring_to_cstr(env, jTransform);
@@ -113,7 +113,7 @@ Java_top_yukonga_mishka_data_bridge_MishkaCoreBridge_nativeValidateTransform(
 }
 
 JNIEXPORT jstring JNICALL
-Java_top_yukonga_mishka_data_bridge_MishkaCoreBridge_nativeUpdateSystemDns(
+Java_com_linx3141_mexpa_data_bridge_MishkaCoreBridge_nativeUpdateSystemDns(
         JNIEnv *env, jclass clazz, jstring jServers) {
     char *servers = jstring_to_cstr(env, jServers);
     if (!servers) return NULL;

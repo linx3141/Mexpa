@@ -18,7 +18,7 @@
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
 
 JNIEXPORT jint JNICALL
-Java_top_yukonga_mishka_service_ProcessHelper_nativeCreateHttpListener(
+Java_com_linx3141_mexpa_service_ProcessHelper_nativeCreateHttpListener(
         JNIEnv *env, jclass clazz) {
     // 随机数只在父进程的 JNI 调用中读取，不能移入 fork 到 exec 之间。
     int random_fd = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
@@ -63,7 +63,7 @@ static int http_listener_address(int fd, struct sockaddr_in *address) {
 }
 
 JNIEXPORT jint JNICALL
-Java_top_yukonga_mishka_service_ProcessHelper_nativeHttpListenerPort(
+Java_com_linx3141_mexpa_service_ProcessHelper_nativeHttpListenerPort(
         JNIEnv *env, jclass clazz, jint fd) {
     struct sockaddr_in address = {0};
     if (!http_listener_address(fd, &address)) return -1;
@@ -71,7 +71,7 @@ Java_top_yukonga_mishka_service_ProcessHelper_nativeHttpListenerPort(
 }
 
 JNIEXPORT jstring JNICALL
-Java_top_yukonga_mishka_service_ProcessHelper_nativeHttpListenerAddress(
+Java_com_linx3141_mexpa_service_ProcessHelper_nativeHttpListenerAddress(
         JNIEnv *env, jclass clazz, jint fd) {
     struct sockaddr_in address = {0};
     if (!http_listener_address(fd, &address)) return NULL;
@@ -90,7 +90,7 @@ Java_top_yukonga_mishka_service_ProcessHelper_nativeHttpListenerAddress(
  * 返回子进程 PID，失败返回 -1。
  */
 JNIEXPORT jint JNICALL
-Java_top_yukonga_mishka_service_ProcessHelper_nativeForkExec(
+Java_com_linx3141_mexpa_service_ProcessHelper_nativeForkExec(
         JNIEnv *env, jclass clazz,
         jstring jBinary, jobjectArray jArgs, jstring jWorkDir, jstring jLogFile) {
 
@@ -209,7 +209,7 @@ static int observe_child(pid_t pid, siginfo_t *info) {
 
 // 判活保留僵尸，防止本组件先收割、随后 stop 仍拿旧 PID 发信号。
 JNIEXPORT jboolean JNICALL
-Java_top_yukonga_mishka_service_ProcessHelper_nativeIsAlive(
+Java_com_linx3141_mexpa_service_ProcessHelper_nativeIsAlive(
         JNIEnv *env, jclass clazz, jint pid) {
     if (pid <= 0) return JNI_FALSE;
     siginfo_t info;
@@ -282,7 +282,7 @@ static int wait_for_child_exit(pid_t pid, int timeout_ms) {
 }
 
 JNIEXPORT jint JNICALL
-Java_top_yukonga_mishka_service_ProcessHelper_nativeStop(
+Java_com_linx3141_mexpa_service_ProcessHelper_nativeStop(
         JNIEnv *env, jclass clazz, jint pid, jint grace_ms, jint force_ms) {
     if (pid <= 0 || grace_ms < 0 || force_ms < 0) return stop_error(EINVAL);
     int result = signal_owned_child((pid_t) pid, SIGTERM);
