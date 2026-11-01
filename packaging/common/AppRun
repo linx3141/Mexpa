@@ -1,0 +1,19 @@
+#!/bin/sh
+# AppImage 入口：AppImage 挂载是只读的，TUN 的 setcap 不能作用于挂载内二进制，
+# 首次启动把 mihomo / mexpa-transform 复制到用户数据目录，再通过环境变量指给应用。
+set -eu
+APPDIR="$(dirname "$(readlink -f "$0")")"
+BIN_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/mexpa/bin"
+mkdir -p "$BIN_DIR"
+copy_if_needed() {
+  src="$1"; dst="$2"
+  if [ ! -x "$dst" ] || ! cmp -s "$src" "$dst" 2>/dev/null; then
+    cp -f "$src" "$dst"
+    chmod +x "$dst"
+  fi
+}
+copy_if_needed "$APPDIR/usr/lib/mexpa/bin/mihomo" "$BIN_DIR/mihomo"
+copy_if_needed "$APPDIR/usr/lib/mexpa/bin/mexpa-transform" "$BIN_DIR/mexpa-transform"
+export MIHOMO_BIN="$BIN_DIR/mihomo"
+export MEXPA_TRANSFORM_BIN="$BIN_DIR/mexpa-transform"
+exec "$APPDIR/usr/lib/mexpa/bin/mexpa" "$@"

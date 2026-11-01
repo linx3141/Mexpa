@@ -1,5 +1,9 @@
 package com.linx3141.mexpa.ui.component
 
+import com.linx3141.mexpa.R
+
+
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,7 +29,6 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.linx3141.mexpa.R
 import com.linx3141.mexpa.platform.scanTetherInterfacesAsRoot
 import com.linx3141.mexpa.platform.showToast
 import com.linx3141.mexpa.ui.component.design.BasicComponent

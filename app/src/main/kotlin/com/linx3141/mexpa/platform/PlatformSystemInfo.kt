@@ -9,7 +9,6 @@ import java.net.InetAddress
 import java.net.NetworkInterface
 import com.linx3141.mexpa.service.RuntimeOverrideBuilder
 
-enum class NetworkAddressType { Unknown, Tun, Lan, Wan }
 
 data class NetworkInfoData(
     val localIp: String = "--",

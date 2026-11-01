@@ -34,5 +34,9 @@ dependencyResolutionManagement {
 includeBuild("build-logic")
 includeBuild("scripta")
 
-include(":app")
-include(":baselineprofile")
+if (System.getenv("MEXPA_SKIP_ANDROID") != "1") {
+    include(":app")
+    include(":baselineprofile")
+}
+include(":desktop")
+include(":shared-ui")

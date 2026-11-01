@@ -49,3 +49,11 @@ local.properties
 
 # Android release outputs (baseline profiles, metadata)
 app/release/
+
+# Local signing credentials
+keystore.properties
+
+# Desktop local build binaries
+desktop/mexpa-transform
+/mihomo-linux
+/apk-backup/

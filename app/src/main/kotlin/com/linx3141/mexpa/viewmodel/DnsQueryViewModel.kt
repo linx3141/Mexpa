@@ -15,16 +15,6 @@ import com.linx3141.mexpa.domain.model.DnsAnswer
 import com.linx3141.mexpa.domain.repository.MihomoRepository
 import com.linx3141.mexpa.util.describe
 
-@Immutable
-data class DnsQueryUiState(
-    val queryName: String = "",
-    val queryType: String = "A",
-    val answers: ImmutableList<DnsAnswer> = persistentListOf(),
-    val status: Int? = null,
-    val isQuerying: Boolean = false,
-    val error: String = "",
-)
-
 class DnsQueryViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow(DnsQueryUiState())

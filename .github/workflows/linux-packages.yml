@@ -1,0 +1,120 @@
+name: Linux packages
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+env:
+  MEXPA_VERSION: 1.0.0
+
+jobs:
+  build-app:
+    name: Build app-image + tarball
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager "platforms;android-37" "build-tools;37.0.0" || true
+      - name: Build portable app image
+        run: |
+          chmod +x desktop/*.sh
+          ./desktop/package-linux.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-tar
+          path: desktop/build/Mexpa-linux-x64-*.tar.gz
+          if-no-files-found: error
+
+  deb:
+    name: Build .deb
+    needs: build-app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-tar
+          path: desktop/build
+      - run: |
+          chmod +x desktop/*.sh
+          ./desktop/package-deb.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deb
+          path: desktop/build/deb-pkg/*.deb
+          if-no-files-found: error
+
+  appimage:
+    name: Build AppImage
+    needs: build-app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-tar
+          path: desktop/build
+      - run: |
+          chmod +x desktop/*.sh
+          ./desktop/package-appimage.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: appimage
+          path: desktop/build/Mexpa-*-x86_64.AppImage
+          if-no-files-found: error
+
+  rpm:
+    name: Build .rpm
+    needs: build-app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-tar
+          path: desktop/build
+      - name: Build in Fedora container
+        run: |
+          chmod +x desktop/*.sh
+          docker run --rm --network host -v "$PWD:$PWD" -w "$PWD" fedora:41 bash -lc '
+            dnf install -y rpm-build tar gzip xz >/dev/null
+            ./desktop/package-rpm.sh
+          '
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rpm
+          path: desktop/build/rpm/RPMS/**/*.rpm
+          if-no-files-found: error
+
+  arch:
+    name: Build Arch package
+    needs: build-app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-tar
+          path: desktop/build
+      - name: Build in Arch container
+        run: |
+          docker run --rm -v "$PWD:$PWD" -w "$PWD" archlinux:latest             bash packaging/ci/arch-build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arch
+          path: desktop/build/arch-pkg/*.pkg.tar.*
+          if-no-files-found: error

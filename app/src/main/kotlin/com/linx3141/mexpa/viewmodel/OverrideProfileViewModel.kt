@@ -27,12 +27,6 @@ import com.linx3141.mexpa.platform.showToast
 import com.linx3141.mexpa.util.describe
 
 @Immutable
-data class OverrideProfileUiState(
-    val profiles: ImmutableList<OverrideProfile> = persistentListOf(),
-    val isLoading: Boolean = false,
-    val error: String = "",
-)
-
 class OverrideProfileViewModel(
     private val repository: OverrideProfileRepository,
     private val subscriptions: SubscriptionRepository,

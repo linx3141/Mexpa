@@ -29,8 +29,3 @@ class AutomationViewModel(
         _state.value = AutomationUiState(allowed = allowed)
     }
 }
-
-@Immutable
-data class AutomationUiState(
-    val allowed: Boolean = false,
-)

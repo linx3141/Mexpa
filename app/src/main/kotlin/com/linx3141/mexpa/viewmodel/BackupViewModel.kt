@@ -23,11 +23,6 @@ import com.linx3141.mexpa.util.describe
 import kotlin.coroutines.resume
 
 @Immutable
-data class BackupUiState(
-    val isBusy: Boolean = false,
-    val restoreCompleted: Boolean = false,
-)
-
 class BackupViewModel(
     private val backupManager: BackupManager,
     private val storage: PlatformStorage,

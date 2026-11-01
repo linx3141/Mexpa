@@ -41,102 +41,6 @@ import kotlin.time.Duration.Companion.milliseconds
 
 /** 低频状态：mihomo 运行状态、配置、代理组、延迟、错误等；改变频率与生命周期事件相当 */
 @Immutable
-data class HomeUiState(
-    val isRunning: Boolean = false,
-    val isStarting: Boolean = false,
-    val isStopping: Boolean = false,
-    val mode: String = "--",
-    val tunStack: String = "",
-    val tunMode: TunMode = TunMode.Vpn,
-    val ipv6: Boolean = false,
-    val config: MihomoConfig? = null,
-    val subscription: SubscriptionInfo? = null,
-    val providerTraffic: ImmutableList<ProviderTrafficInfo> = persistentListOf(),
-    val isProviderTrafficLoading: Boolean = false,
-    val providerTrafficLoadFailed: Boolean = false,
-    val latencyBaidu: Int = -1,
-    val latencyCloudflare: Int = -1,
-    val latencyGoogle: Int = -1,
-    val isTestingLatency: Boolean = false,
-    // false = 本轮退回了组拨测、未经规则引擎，UI 据此标注
-    val latencyViaRules: Boolean = true,
-    val version: String = "",
-    val errorMessage: String = "",
-    val needsVpnPermission: Boolean = false,
-)
-
-@Immutable
-data class ProviderTrafficInfo(
-    val id: String,
-    val name: String,
-    val nodeCount: Int,
-    val updatedAt: String,
-    // subscription-userinfo 缺失时 false：UI 仅隐藏流量面板，不整卡过滤
-    val hasTraffic: Boolean,
-    val upload: Long,
-    val download: Long,
-    val total: Long,
-    val expire: Long,
-)
-
-// mihomo 的 "default" 特殊 provider（proxies: 段运行时聚合）的 vehicleType，非订阅集合，展示与更新都排除
-private const val VEHICLE_TYPE_COMPATIBLE = "Compatible"
-
-/**
- * 流量历史窗口：最近 [HomeViewModel.TRAFFIC_HISTORY_CAPACITY] 个采样点的原始字节速率，用于绘制折线图。
- * [seq] 单调递增，UI 侧既拿它作滑入动画的 key 也作动画目标值——比对 list 内容无法区分「新点与上一点等值」。
- */
-@Immutable
-data class TrafficHistory(
-    val up: ImmutableList<Long> = persistentListOf(),
-    val down: ImmutableList<Long> = persistentListOf(),
-    val seq: Int = 0,
-)
-
-/** 高频流量快照：每 100–500ms 更新，独立 Flow 隔离重组 */
-@Immutable
-data class SpeedSnapshot(
-    val uploadSpeed: String = "-- B/s",
-    val downloadSpeed: String = "-- B/s",
-    val history: TrafficHistory = TrafficHistory(),
-)
-
-/** 主页连通性体检的三个探针；URL 一律用 http 明文，避免 TLS 握手把测量口径拉长 */
-enum class LatencyProbe(val url: String) {
-    Baidu("http://www.baidu.com"),
-    Cloudflare("http://www.cloudflare.com/cdn-cgi/trace"),
-    Google("http://www.google.com/generate_204"),
-}
-
-/** 高频内存快照 */
-@Immutable
-data class MemorySnapshot(
-    val ramUsage: String = "-- MB",
-    val ramTotal: String = "-- MB",
-)
-
-/**
- * 单条连接的瞬时速率，由相邻两次 `/connections` 快照的累计字节差分得出。
- * mihomo 只给累计量，不给速率——长连接的累计值会一直很大，据此排序看不出「此刻谁在跑」。
- */
-@Immutable
-data class ConnectionRate(
-    val id: String,
-    val host: String,
-    val node: String,
-    val uploadRate: Long,
-    val downloadRate: Long,
-)
-
-/** 系统信息快照：网卡 + CPU，2s 一次 */
-@Immutable
-data class SystemInfoSnapshot(
-    val localIp: String = "--",
-    val interfaceName: String = "--",
-    val addressType: NetworkAddressType = NetworkAddressType.Unknown,
-    val cpuUsage: String = "--%",
-)
-
 class HomeViewModel(
     private val serviceController: ProxyServiceController,
     private val overrideStore: OverrideJsonStore,
@@ -817,9 +721,6 @@ class HomeViewModel(
     }
 
     companion object {
-        /** 折线图窗口点数；mihomo `/traffic` 为 1Hz 推送，即约 1 分钟历史 */
-        const val TRAFFIC_HISTORY_CAPACITY = 60
-
         private const val LATENCY_TIMEOUT_MILLIS = 5000L
 
         /** 速度卡详情展示的连接条数 */

@@ -1,0 +1,33 @@
+# Maintainer: linx3141
+pkgname=mexpa
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="mihomo proxy client for Linux (Compose Desktop)"
+arch=('x86_64')
+url="https://github.com/linx3141/Mexpa"
+license=('GPL-3.0-only')
+depends=('glibc' 'gcc-libs' 'libglvnd' 'libx11' 'libxext' 'libxrender' 'libxi' 'libxtst' 'fontconfig' 'freetype2' 'zlib' 'libpng' 'libcap')
+optdepends=(
+  'python-gobject: native AppIndicator tray (KDE/GNOME Wayland)'
+  'libayatana-appindicator: native AppIndicator tray (KDE/GNOME Wayland)'
+  'xdg-utils: open OSS links and clash:// handler'
+)
+install=mexpa.install
+options=(!strip)
+source=(
+  "mexpa-${pkgver}-linux-x64.tar.gz"
+  "mexpa.desktop"
+  "mexpa.png"
+  "mexpa-launcher"
+  "LICENSE"
+)
+sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
+
+package() {
+  install -d "$pkgdir/opt/$pkgname"
+  cp -a "$srcdir/mexpa/." "$pkgdir/opt/$pkgname/"
+  install -Dm755 "$srcdir/mexpa-launcher" "$pkgdir/usr/bin/mexpa"
+  install -Dm644 "$srcdir/mexpa.desktop" "$pkgdir/usr/share/applications/mexpa.desktop"
+  install -Dm644 "$srcdir/mexpa.png" "$pkgdir/usr/share/icons/hicolor/512x512/apps/mexpa.png"
+  install -Dm644 "$srcdir/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE" 2>/dev/null || true
+}

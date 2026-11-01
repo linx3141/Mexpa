@@ -104,6 +104,36 @@ git submodule update --init --recursive
 
 > `mihomo` 通过 git submodule 引入 [YuKongA/mihomo](https://github.com/YuKongA/mihomo) 的 `Mishka` 分支（含 5 个针对 Android fd/TUN 的 patch）。Gradle 会自动驱动 Go 交叉编译，产物位于 `app/src/main/jniLibs/<ABI>/`
 
+## Linux 版
+
+`desktop` 模块使用 Compose Multiplatform，与 Android 共用 `shared-ui` 的页面、组件、主题和字符串资源。Linux 不再维护自写桌面 UI，四个主 Tab 与二级页均调用共享 composable。
+
+```bash
+# 构建 mihomo 并生成 Linux 便携包
+./desktop/package-linux.sh
+
+# 直接运行开发版
+ANDROID_HOME=$HOME/Android/Sdk ./gradlew :desktop:run
+```
+
+当前已接入：
+
+- 共享 Home / Proxy / Subscription / Settings 及二级页
+- 共享 M3E 主题、底部导航和手机比例窗口
+- mihomo 启动 / 停止、mixed-port、external-controller
+- 配置文件、可执行文件、运行目录配置
+- **系统代理**：KDE（kioslaverc）与 GNOME / MATE（gsettings），停止/退出自动恢复原设置
+- **TUN 虚拟网卡**：通过 `--override-json` 启用（需一次性 `setcap cap_net_admin+ep` 授权）
+- 真实代理/连接/日志/Provider/DNS 数据（mihomo external-controller REST + WebSocket）
+- 订阅导入（URL/文件）、mihomo 校验、编辑、自动更新与 active 持久化
+- 设置持久化、GeoIP 数据管理、本地备份/恢复
+- 托盘、单实例锁、登录自启（打包版）、运行状态与冲突提示
+- 日志与 DNS 查询
+
+Linux 设置页通过能力门控隐藏 TUN / ROOT / VPN / 分应用代理 / Wi-Fi 策略 / 动态通知 / 开机自启 / Meta / FileManager / Overrides 等 Android 专属入口，不显示可点击假按钮。Android 侧这些页面仍保留原生实现。
+
+详见 [desktop/README.md](desktop/README.md) 与 [docs/linux-shared-ui.md](docs/linux-shared-ui.md)。
+
 ## 致谢
 
 - [mihomo](https://github.com/MetaCubeX/mihomo) —— 代理核心
@@ -116,3 +146,13 @@ git submodule update --init --recursive
 ## 许可证
 
 本项目基于 [Mishka](https://github.com/YuKongA/Mishka) 开发，以 [GPL-3.0](LICENSE) 许可证开源；与内核 [mihomo](https://github.com/MetaCubeX/mihomo) 一致
+
+
+## Linux 打包
+
+已提供 x86_64 的 AppImage、deb、rpm、Arch 包构建脚本（见 [packaging/README.md](packaging/README.md)），以及 GitHub Actions 工作流 `.github/workflows/linux-packages.yml`。TUN 在 AppImage 下会把内核复制到用户目录再授权；deb/rpm/Arch 的 post-install 会直接 setcap。
+
+
+## Windows
+
+Windows 版通过 `packaging/windows/README.md` 构建；系统代理、托盘、自启动、scheme、TUN 管理员路径与控制通道的平台差异见 [docs/windows-port.md](docs/windows-port.md)。

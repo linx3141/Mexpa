@@ -34,9 +34,3 @@ class ExternalControlViewModel(
         store.update { it.copy(secret = value) }
     }
 }
-
-@Immutable
-data class ExternalControlUiState(
-    val externalController: String? = null,
-    val secret: String? = null,
-)

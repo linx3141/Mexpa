@@ -15,15 +15,6 @@ import com.linx3141.mexpa.domain.model.ConnectionInfo
 import com.linx3141.mexpa.domain.repository.MihomoRepository
 
 @Immutable
-data class ConnectionUiState(
-    val connections: ImmutableList<ConnectionInfo> = persistentListOf(),
-    val downloadTotal: Long = 0,
-    val uploadTotal: Long = 0,
-    val searchQuery: String = "",
-    val isConnected: Boolean = false,
-    val error: String = "",
-)
-
 class ConnectionViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow(ConnectionUiState())

@@ -1,2 +1,2 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+desktop/src/main/resources/geo/* binary
+packaging/windows/wintun-LICENSE.txt text eol=lf

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Mexpa
+GenericName=Proxy Client
+Comment=mihomo proxy client for Linux
+Exec=/usr/bin/mexpa %u
+Icon=mexpa
+Terminal=false
+Categories=Network;
+Keywords=proxy;vpn;mihomo;clash;
+MimeType=x-scheme-handler/clash;x-scheme-handler/clashmeta;
+StartupWMClass=Mexpa for Linux

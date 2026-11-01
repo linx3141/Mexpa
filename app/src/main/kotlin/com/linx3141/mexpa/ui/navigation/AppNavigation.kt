@@ -1,5 +1,9 @@
 package com.linx3141.mexpa.ui.navigation
 
+import com.linx3141.mexpa.R
+
+
+
 import com.linx3141.mexpa.ui.theme.MishkaColors
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.foundation.gestures.Orientation
@@ -85,9 +89,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.job
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import com.linx3141.mexpa.DeepLinkImportRequest
-import com.linx3141.mexpa.R
 import com.linx3141.mexpa.platform.BootStartManager
 import com.linx3141.mexpa.platform.FilePicker
 import com.linx3141.mexpa.platform.PlatformStorage
@@ -134,6 +139,7 @@ import com.linx3141.mexpa.ui.theme.FloatingBottomBarStyle
 import com.linx3141.mexpa.ui.theme.LocalAppDarkMode
 import com.linx3141.mexpa.ui.theme.LocalUiMode
 import com.linx3141.mexpa.ui.theme.ThemeConfig
+import com.linx3141.mexpa.ui.theme.writeThemeConfig
 import com.linx3141.mexpa.ui.theme.TopBarBlurStyle
 import com.linx3141.mexpa.ui.theme.UiMode
 import com.linx3141.mexpa.ui.util.rememberIsWideScreen
@@ -505,10 +511,16 @@ fun AppNavigation(
             entry<Route.ThemeSettings>(swipeDismiss = swipeDismiss) {
                 storage?.let {
                     ThemeSettingsScreen(
-                        storage = it,
                         themeConfig = themeConfig,
-                        onThemeConfigChange = onThemeConfigChange,
-                        onPredictiveBackChange = onPredictiveBackChange,
+                        predictiveBackEnabled = it.getString(StorageKeys.PREDICTIVE_BACK, "false") == "true",
+                        onThemeConfigChange = { next ->
+                            writeThemeConfig(it, next)
+                            onThemeConfigChange(next)
+                        },
+                        onPredictiveBackChange = { checked ->
+                            it.putString(StorageKeys.PREDICTIVE_BACK, checked.toString())
+                            onPredictiveBackChange?.invoke(checked)
+                        },
                         swipeDismissEnabled = swipeDismissEnabled,
                         onSwipeDismissChange = { enabled ->
                             swipeDismissEnabled = enabled
@@ -954,6 +966,8 @@ private fun MaterialMainShell(
                     expanded = navRailExpanded,
                     onExpandedChange = onNavRailExpandedChange,
                     modifier = hiddenSemantics,
+                    expandContentDescription = stringResource(R.string.nav_rail_expand),
+                    collapseContentDescription = stringResource(R.string.nav_rail_collapse),
                 )
                 pagerContent(
                     Modifier
@@ -1162,6 +1176,9 @@ class MainPagerState(
         private set
 
     private var navJob: Job? = null
+    // 串行化 pager 动画：上一段被取消的 animateScrollToPage 必须真正释放后，
+    // 下一段才能接管；否则连续点 Tab 时后一次动画会被前一次的取消过程吞掉。
+    private val navigationMutex = Mutex()
 
     fun animateToPage(targetIndex: Int) {
         if (targetIndex == selectedPage) return
@@ -1172,20 +1189,22 @@ class MainPagerState(
 
         navJob = coroutineScope.launch {
             val myJob = coroutineContext.job
-            try {
-                if (animatePageChanges) {
-                    pagerState.animateScrollToPage(
-                        page = targetIndex,
-                        animationSpec = PagerNavigationSpringSpec.scaledForSpeed(animationSpeed),
-                    )
-                } else {
-                    pagerState.scrollToPage(targetIndex)
-                }
-            } finally {
-                if (navJob == myJob) {
-                    isNavigating = false
-                    if (pagerState.currentPage != targetIndex) {
-                        selectedPage = pagerState.currentPage
+            navigationMutex.withLock {
+                try {
+                    if (animatePageChanges) {
+                        pagerState.animateScrollToPage(
+                            page = targetIndex,
+                            animationSpec = PagerNavigationSpringSpec.scaledForSpeed(animationSpeed),
+                        )
+                    } else {
+                        pagerState.scrollToPage(targetIndex)
+                    }
+                } finally {
+                    if (navJob == myJob) {
+                        isNavigating = false
+                        if (pagerState.currentPage != targetIndex) {
+                            selectedPage = pagerState.currentPage
+                        }
                     }
                 }
             }

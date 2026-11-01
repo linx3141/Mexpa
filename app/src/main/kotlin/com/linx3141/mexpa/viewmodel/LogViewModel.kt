@@ -17,15 +17,6 @@ import kotlinx.coroutines.launch
 import com.linx3141.mexpa.domain.model.LogMessage
 import com.linx3141.mexpa.domain.repository.MihomoRepository
 
-@Immutable
-data class LogUiState(
-    val isConnected: Boolean = false,
-    val level: String = "info",
-)
-
-@Immutable
-data class IndexedLog(val id: Long, val message: LogMessage)
-
 class LogViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow(LogUiState())

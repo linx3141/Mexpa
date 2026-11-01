@@ -37,6 +37,12 @@ LocalUiMode ─────────> ui/component/design/*               组
 | `SegmentedList.kt` | M3E 分段列表原语（移植自 KernelSU），供 Material 专属页面/弹层使用 |
 | `NavigationBar.kt` | Material 底栏 `ShortNavigationBar` + M3E 悬浮底栏（Launcher3 `ScrollableFloatingToolbar` 结构）+ 宽屏 `WideNavigationRail`（可展开）+ `MishkaBackButton`（filled tonal） |
 
+**宽屏顶栏固定**：`rememberMishkaScrollBehavior()` 会按 `rememberIsWideScreen()` 选择折叠语义——
+窄屏用 `exitUntilCollapsed`（大标题随滚动折叠），宽屏（≥600dp）顶栏是固定的 `SmallTopAppBar`，Material 侧必须改用
+`TopAppBarDefaults.pinnedScrollBehavior`。若宽屏仍给固定小顶栏喂 `exitUntilCollapsed`，滚动会把顶栏高度压到 0
+（表现是「向下滑动顶栏被顶走」）；Miuix 的小顶栏会自己钉住 behavior 的 state，但内容侧的 nestedScroll 连接也必须换成
+pinned，否则 `onPreScroll` 会先消费掉滚动量、页面反而滚不动。
+
 **约定**：页面只 import `design` 层的同名组件；新增组件必须同时给出 Miuix 分支（逐参数委托 miuix，
 默认值与被替换组件完全一致）与 Material 分支。默认参数不能写成 `MaterialTheme.*` 的裸读——
 那会在 Miuix 模式下拿到 M3 默认浅色调；要么按 `LocalUiMode` 分支，要么像 `CardDefaults` 一样延后解析。

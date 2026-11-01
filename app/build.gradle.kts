@@ -16,6 +16,7 @@ plugins {
 
 dependencies {
     baselineProfile(projects.baselineprofile)
+    implementation(projects.sharedUi)
     implementation(platform(libs.koin.bom))
     implementation(libs.bundles.koin)
     implementation(libs.bundles.androidx.lifecycle)
@@ -44,10 +45,15 @@ val gitVersionCode = getGitVersionCode()
 
 val properties = Properties()
 runCatching { project.rootProject.file("local.properties").inputStream().use { properties.load(it) } }
-val keystorePath: String? = (properties.getProperty("KEYSTORE_PATH") ?: System.getenv("KEYSTORE_PATH"))?.takeIf { it.isNotBlank() }
-val keystorePwd: String? = properties.getProperty("KEYSTORE_PASS") ?: System.getenv("KEYSTORE_PASS")
-val alias: String? = properties.getProperty("KEY_ALIAS") ?: System.getenv("KEY_ALIAS")
-val pwd: String? = properties.getProperty("KEY_PASSWORD") ?: System.getenv("KEY_PASSWORD")
+// 本地签名凭据（已 gitignore）；也可继续用同名环境变量/CI secrets 覆盖
+val keystoreProperties = Properties()
+runCatching { project.rootProject.file("keystore.properties").inputStream().use { keystoreProperties.load(it) } }
+fun signingValue(name: String): String? =
+    properties.getProperty(name) ?: System.getenv(name) ?: keystoreProperties.getProperty(name)
+val keystorePath: String? = signingValue("KEYSTORE_PATH")?.takeIf { it.isNotBlank() }
+val keystorePwd: String? = signingValue("KEYSTORE_PASS")
+val alias: String? = signingValue("KEY_ALIAS")
+val pwd: String? = signingValue("KEY_PASSWORD")
 val keystoreFile = keystorePath?.let { path ->
     file(path).takeIf { it.exists() } ?: project.rootProject.file(path).takeIf { it.exists() }
 }
@@ -275,4 +281,21 @@ base {
     archivesName.set(
         "${ProjectConfig.APP_NAME}-v${ProjectConfig.VERSION_NAME}($gitVersionCode)",
     )
+}
+
+// Compose Multiplatform 资源在 AGP 9 KMP Android library 下不会自动进入 app assets；
+// 显式把 shared-ui 的 preparedResources 投到 assets/composeResources，供 AndroidResourceReader 读取。
+val sharedComposeResourcesDir = rootProject.layout.projectDirectory.dir(
+    "shared-ui/build/generated/compose/resourceGenerator/preparedResources/commonMain/composeResources",
+)
+val syncSharedComposeResources = tasks.register<Sync>("syncSharedComposeResources") {
+    dependsOn(":shared-ui:prepareComposeResourcesTaskForCommonMain")
+    from(sharedComposeResourcesDir) { into("composeResources/com.linx3141.mexpa.shared.resources") }
+    into(layout.buildDirectory.dir("generated/sharedComposeAssets"))
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(syncSharedComposeResources) { it.destinationDirectory }
+    }
 }
