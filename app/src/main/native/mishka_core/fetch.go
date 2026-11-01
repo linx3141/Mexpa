@@ -194,6 +194,24 @@ func newSubscriptionHTTPClient(proxyURL string) (*http.Client, error) {
 	return &http.Client{Transport: transport}, nil
 }
 
+// 订阅地址可能带 userinfo；http.Client 不会自动把它转成 BasicAuth。
+func newFetchRequest(ctx context.Context, u *url.URL, header http.Header) (*http.Request, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	for k, values := range header {
+		for _, value := range values {
+			req.Header.Add(k, value)
+		}
+	}
+	if user := u.User; user != nil {
+		password, _ := user.Password()
+		req.SetBasicAuth(user.Username(), password)
+	}
+	return req, nil
+}
+
 func fetchURL(ctx context.Context, u *url.URL, dest string, result *FetchResult, userAgent string, proxyURL string) error {
 	scheme := strings.ToLower(u.Scheme)
 	if scheme != "http" && scheme != "https" {
@@ -203,11 +221,10 @@ func fetchURL(ctx context.Context, u *url.URL, dest string, result *FetchResult,
 	subCtx, cancel := context.WithTimeout(ctx, fetchTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(subCtx, http.MethodGet, u.String(), nil)
+	req, err := newFetchRequest(subCtx, u, http.Header{"User-Agent": []string{userAgent}})
 	if err != nil {
 		return fmt.Errorf("create request: %w", err)
 	}
-	req.Header.Set("User-Agent", userAgent)
 	client, err := newSubscriptionHTTPClient(proxyURL)
 	if err != nil {
 		return err
@@ -595,11 +612,10 @@ func fetchProvider(ctx context.Context, u *url.URL, dest string, userAgent strin
 	if header.Get("User-Agent") == "" {
 		header.Set("User-Agent", userAgent)
 	}
-	req, err := http.NewRequestWithContext(subCtx, http.MethodGet, u.String(), nil)
+	req, err := newFetchRequest(subCtx, u, header)
 	if err != nil {
 		return "", err
 	}
-	req.Header = header
 	client, err := newSubscriptionHTTPClient(proxyURL)
 	if err != nil {
 		return "", err

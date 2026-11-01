@@ -9,14 +9,20 @@ import com.linx3141.mexpa.ui.theme.AppIcons
 import com.linx3141.mexpa.ui.theme.LocalUiMode
 import com.linx3141.mexpa.ui.theme.MishkaColors
 import com.linx3141.mexpa.ui.theme.UiMode
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,17 +36,24 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -50,7 +63,15 @@ import com.linx3141.mexpa.viewmodel.IndexedLog
 import com.linx3141.mexpa.viewmodel.LogUiState
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toPersistentList
 import com.linx3141.mexpa.ui.component.AdaptiveTopAppBar
+import com.linx3141.mexpa.ui.component.SearchBarFake
+import com.linx3141.mexpa.ui.component.SearchBox
+import com.linx3141.mexpa.ui.component.SearchPager
+import com.linx3141.mexpa.ui.component.SearchResultStatusEffect
+import com.linx3141.mexpa.ui.component.SearchStatus
+import com.linx3141.mexpa.ui.component.rememberSearchBarTopPadding
+import com.linx3141.mexpa.ui.component.rememberSearchScreenStatus
 import com.linx3141.mexpa.ui.component.blur.BlurredBar
 import com.linx3141.mexpa.ui.component.blur.rememberBlurBackdrop
 import com.linx3141.mexpa.ui.util.horizontalCutoutPadding
@@ -61,6 +82,7 @@ import com.linx3141.mexpa.ui.component.design.BadgeText
 import com.linx3141.mexpa.ui.component.design.IconButton
 import com.linx3141.mexpa.ui.component.design.themeBadgeBackground
 import com.linx3141.mexpa.ui.component.design.rememberMishkaScrollBehavior
+import com.linx3141.mexpa.ui.component.design.MishkaSearchAppBar
 import com.linx3141.mexpa.ui.component.design.Scaffold
 import com.linx3141.mexpa.ui.component.design.Text
 import top.yukonga.miuix.kmp.blur.layerBackdrop
@@ -83,11 +105,24 @@ fun LogScreenContent(
 
     val scrollBehavior = rememberMishkaScrollBehavior()
     val listState = rememberLazyListState()
+    val density = LocalDensity.current
+    val isMaterial = LocalUiMode.current == UiMode.Material
+    var materialSearchText by remember { mutableStateOf("") }
 
     DisposableEffect(Unit) {
         onConnect()
         onDispose { onDisconnect() }
     }
+
+    val searchStatusState = rememberSearchScreenStatus(stringResource(Res.string.log_search))
+    var searchStatus by searchStatusState
+
+    // 搜索词只作为过滤 key，不写回 ViewModel，避免组合期写状态
+    val searchText = if (isMaterial) materialSearchText else searchStatus.searchText
+    val filteredLogs = remember(searchText, logs) { filterLogs(logs, searchText) }
+    if (!isMaterial) SearchResultStatusEffect(searchStatusState, filteredLogs.isEmpty())
+
+    val dynamicTopPadding = rememberSearchBarTopPadding(scrollBehavior)
 
     // 仅当用户已滚到底部时自动跟随新日志，否则不抢夺滚动位置
     val autoScrollEnabled by remember {
@@ -106,7 +141,8 @@ fun LogScreenContent(
     // key 用单调递增的末条 id：缓冲写满后 size 恒定，不能再以 size 变化驱动自动跟随
     val lastLogId = logs.lastOrNull()?.id
     LaunchedEffect(lastLogId) {
-        if (lastLogId != null && autoScrollEnabled) {
+        // 搜索态下主列表被弹出层盖住，滚它也看不见，收起后还会停在错位置
+        if (lastLogId != null && autoScrollEnabled && searchStatus.isCollapsed()) {
             listState.animateScrollToItem(logs.lastIndex)
         }
     }
@@ -115,32 +151,62 @@ fun LogScreenContent(
     val blurActive = backdrop != null
     val barColor = if (blurActive) Color.Transparent else MishkaColors.surface
 
-    Scaffold(
-        topBar = {
-            BlurredBar(backdrop = backdrop, blurActive = blurActive) {
-                AdaptiveTopAppBar(
-                    title = stringResource(Res.string.log_title),
-                    color = barColor,
-                    scrollBehavior = scrollBehavior,
-                    navigationIcon = {
-                        MishkaBackButton(
-                            onClick = onBack,
-                            contentDescription = stringResource(Res.string.common_back),
+    val backButton: @Composable () -> Unit = {
+        MishkaBackButton(
+            onClick = onBack,
+            contentDescription = stringResource(Res.string.common_back),
+        )
+    }
+    val actionsContent: @Composable () -> Unit = {
+        IconButton(onClick = { onClear() }) {
+            Icon(
+                imageVector = AppIcons.Delete,
+                contentDescription = stringResource(Res.string.log_clear),
+                tint = MishkaColors.onSurface,
+            )
+        }
+    }
+
+    val materialSearchResults: @Composable (Dp) -> Unit = { bottomPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .imePadding(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(
+                start = PageHorizontalPadding,
+                end = PageHorizontalPadding,
+                bottom = 16.dp + bottomPadding,
+            ),
+        ) {
+            if (filteredLogs.isEmpty()) {
+                item(key = "search_empty") {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.log_no_match),
+                            fontSize = 16.sp,
+                            color = MishkaColors.onSurfaceVariantSummary,
                         )
-                    },
-                    actions = {
-                        IconButton(onClick = { onClear() }) {
-                            Icon(
-                                imageVector = AppIcons.Delete,
-                                contentDescription = stringResource(Res.string.log_clear),
-                                tint = MishkaColors.onSurface,
-                            )
-                        }
-                    },
-                )
+                    }
+                }
+            } else {
+                items(
+                    items = filteredLogs,
+                    key = { it.id },
+                    contentType = { "log" },
+                ) { indexedLog ->
+                    LogCard(indexedLog.message)
+                }
             }
-        },
-    ) { innerPadding ->
+        }
+    }
+
+    val logList: @Composable (PaddingValues) -> Unit = { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -192,6 +258,133 @@ fun LogScreenContent(
             }
         }
     }
+
+    Scaffold(
+        topBar = {
+            if (isMaterial) {
+                MishkaSearchAppBar(
+                    title = { Text(stringResource(Res.string.log_title)) },
+                    searchText = materialSearchText,
+                    onSearchTextChange = { materialSearchText = it },
+                    onClearClick = { materialSearchText = "" },
+                    navigationIcon = { backButton() },
+                    actions = { actionsContent() },
+                    scrollBehavior = scrollBehavior.material,
+                    defaultContent = { bottomPadding, _ -> materialSearchResults(bottomPadding) },
+                    searchContent = { bottomPadding, _ -> materialSearchResults(bottomPadding) },
+                )
+            } else {
+                BlurredBar(backdrop = backdrop, blurActive = blurActive) {
+                    searchStatus.TopAppBarAnim(
+                        backgroundColor = if (blurActive) Color.Transparent else MishkaColors.surface,
+                    ) {
+                        AdaptiveTopAppBar(
+                            title = stringResource(Res.string.log_title),
+                            color = barColor,
+                            scrollBehavior = scrollBehavior,
+                            navigationIcon = backButton,
+                            actions = { actionsContent() },
+                            bottomContent = {
+                                Box(
+                                    modifier = Modifier
+                                        .graphicsLayer { alpha = if (searchStatus.isCollapsed()) 1f else 0f }
+                                        .onGloballyPositioned { coordinates ->
+                                            with(density) {
+                                                val newOffsetY = coordinates.positionInWindow().y.toDp()
+                                                if (searchStatus.offsetY != newOffsetY) {
+                                                    searchStatus = searchStatus.copy(offsetY = newOffsetY)
+                                                }
+                                            }
+                                        }
+                                        .then(
+                                            if (searchStatus.isCollapsed()) {
+                                                Modifier.pointerInput(Unit) {
+                                                    detectTapGestures {
+                                                        searchStatus = searchStatus.copy(current = SearchStatus.Status.EXPANDING)
+                                                    }
+                                                }
+                                            } else Modifier,
+                                        ),
+                                ) {
+                                    SearchBarFake(searchStatus.label, dynamicTopPadding)
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+        },
+        popupHost = if (isMaterial) null else {
+            {
+                searchStatus.SearchPager(
+                onSearchStatusChange = { searchStatus = it },
+                defaultResult = {},
+                searchBarTopPadding = dynamicTopPadding,
+            ) {
+                val imeBottomPadding = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .platformOverScrollVertical(),
+                ) {
+                    item {
+                        Spacer(Modifier.height(12.dp))
+                    }
+
+                    if (filteredLogs.isEmpty()) {
+                        item(key = "search_empty") {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                Text(
+                                    text = stringResource(Res.string.log_no_match),
+                                    fontSize = 16.sp,
+                                    color = MishkaColors.onSurfaceVariantSummary,
+                                )
+                            }
+                        }
+                    } else {
+                        items(
+                            items = filteredLogs,
+                            key = { it.id },
+                            contentType = { "log" },
+                        ) { indexedLog ->
+                            LogCard(indexedLog.message)
+                        }
+                    }
+
+                    item {
+                        Spacer(
+                            Modifier
+                                .height(imeBottomPadding)
+                                .navigationBarsPadding(),
+                        )
+                    }
+                }
+            }
+        }
+        },
+    ) { innerPadding ->
+        if (isMaterial) {
+            logList(innerPadding)
+        } else {
+            searchStatus.SearchBox {
+                logList(innerPadding)
+            }
+        }
+    }
+}
+
+private fun filterLogs(logs: ImmutableList<IndexedLog>, searchQuery: String): ImmutableList<IndexedLog> {
+    val query = searchQuery.trim().lowercase()
+    if (query.isEmpty()) return logs
+    return logs.filter { log ->
+        log.message.payload.lowercase().contains(query) ||
+                log.message.type.lowercase().contains(query)
+    }.toPersistentList()
 }
 
 /**
