@@ -25,6 +25,11 @@ if (-not (Test-Path $Wintun)) {
     $Extract = Join-Path $env:TEMP "wintun-0.14.1"
     Remove-Item -Recurse -Force $Extract -ErrorAction SilentlyContinue
     Expand-Archive $Zip -DestinationPath $Extract -Force
-    Copy-Item (Join-Path $Extract "bin/amd64/wintun.dll") $Wintun
+    # Wintun zip uses a top-level wintun/ directory; don't assume bin/ is directly under Extract.
+    $Dll = Get-ChildItem $Extract -Recurse -Filter wintun.dll |
+        Where-Object { $_.FullName -match '[\\/]amd64[\\/]' } |
+        Select-Object -First 1
+    if (-not $Dll) { throw "wintun.dll for amd64 not found under $Extract" }
+    Copy-Item $Dll.FullName $Wintun -Force
 }
 Write-Host "Windows binaries: $Out"
