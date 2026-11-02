@@ -5,6 +5,7 @@ import com.sun.jna.Pointer
 import com.sun.jna.Structure
 import com.sun.jna.WString
 import com.sun.jna.win32.StdCallLibrary
+import java.util.concurrent.Executors
 
 /**
  * Windows 原生托盘菜单：CreatePopupMenu + TrackPopupMenuEx。
@@ -42,6 +43,21 @@ object Win32TrayMenu {
     }
 
     private val user32 by lazy { Native.load("user32", User32::class.java) }
+    // 菜单必须在独立线程跑：TrackPopupMenuEx 是阻塞的消息循环，直接在 AWT 托盘事件线程里
+    // 调用会卡住后续托盘事件，表现为菜单关掉一次后右键不再响应。
+    private val menuExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "mexpa-win32-tray-menu").apply { isDaemon = true }
+    }
+    // 隐藏 owner window 只创建一次；每次销毁会让后续 SetForegroundWindow 失败。
+    private var ownerWindow: Pointer? = null
+
+    private fun ownerWindow(): Pointer? {
+        ownerWindow?.let { return it }
+        return user32.CreateWindowExW(
+            0, WString("STATIC"), WString(""), WS_POPUP,
+            0, 0, 0, 0, null, null, null, null,
+        )?.also { ownerWindow = it }
+    }
 
     fun show(
         onShow: () -> Unit,
@@ -49,14 +65,19 @@ object Win32TrayMenu {
         onStop: () -> Unit,
         onExit: () -> Unit,
     ) {
-        val hwnd = user32.CreateWindowExW(
-            0, WString("STATIC"), WString(""), WS_POPUP,
-            0, 0, 0, 0, null, null, null, null,
-        ) ?: return
-        val menu = user32.CreatePopupMenu() ?: run {
-            user32.DestroyWindow(hwnd)
-            return
+        menuExecutor.execute {
+            runCatching { showMenu(onShow, onStart, onStop, onExit) }
         }
+    }
+
+    private fun showMenu(
+        onShow: () -> Unit,
+        onStart: () -> Unit,
+        onStop: () -> Unit,
+        onExit: () -> Unit,
+    ) {
+        val hwnd = ownerWindow() ?: return
+        val menu = user32.CreatePopupMenu() ?: return
         try {
             user32.AppendMenuW(menu, MF_STRING, 1, WString("显示主窗口"))
             user32.AppendMenuW(menu, MF_STRING, 2, WString("启动代理"))
@@ -80,7 +101,6 @@ object Win32TrayMenu {
             }
         } finally {
             user32.DestroyMenu(menu)
-            user32.DestroyWindow(hwnd)
         }
     }
 }

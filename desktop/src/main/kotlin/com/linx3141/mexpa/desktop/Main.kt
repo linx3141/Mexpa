@@ -819,9 +819,9 @@ private fun DesktopNavHost(
                         fabBottomPadding = fabBottomPadding,
                         bottomPadding = homeBottomPadding,
                     )
-                    MainTab.Proxy -> SharedProxyPage(state, controller)
-                    MainTab.Subscription -> SharedSubscriptionPage(state)
-                    MainTab.Settings -> SharedSettingsPage(state)
+                    MainTab.Proxy -> SharedProxyPage(state, controller, homeBottomPadding)
+                    MainTab.Subscription -> SharedSubscriptionPage(state, homeBottomPadding)
+                    MainTab.Settings -> SharedSettingsPage(state, homeBottomPadding)
                 }
             }
         }

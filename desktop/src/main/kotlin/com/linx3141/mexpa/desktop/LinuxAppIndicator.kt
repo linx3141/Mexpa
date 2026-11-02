@@ -90,14 +90,7 @@ Gtk.main()
             lastFailure = "缺少 python3-gi / libayatana-appindicator3"
             return null
         }
-        val icon = File(stateDir, "tray-icon.png")
-        if (!icon.isFile) {
-            val stream = javaClass.classLoader?.getResourceAsStream(
-                "composeResources/com.linx3141.mexpa.shared.resources/drawable/mexpa_icon.png",
-            ) ?: return null
-            stateDir.mkdirs()
-            stream.use { input -> icon.outputStream().use { input.copyTo(it) } }
-        }
+        val icon = prepareIcon(stateDir) ?: return null
         val script = File(stateDir, "tray-helper.py")
         script.writeText(SCRIPT.trimIndent() + "\n")
         val process = runCatching {
@@ -115,6 +108,33 @@ Gtk.main()
         Thread.sleep(350)
         if (!process.isAlive) return null
         return process
+    }
+
+    /**
+     * 旧实现只在 tray-icon.png 不存在时写入，更新包后 AppIndicator 仍会读旧文件。
+     * 用内容 hash 命名，既强制刷新托盘图标，也避开桌面环境按 icon name 的缓存。
+     */
+    private fun prepareIcon(stateDir: File): File? {
+        val stream = javaClass.classLoader?.getResourceAsStream(
+            "composeResources/com.linx3141.mexpa.shared.resources/drawable/mexpa_icon.png",
+        ) ?: return null
+        val bytes = stream.use { it.readBytes() }
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(bytes)
+            .joinToString("") { "%02x".format(it) }
+            .take(12)
+        stateDir.mkdirs()
+        val icon = File(stateDir, "tray-icon-$digest.png")
+        if (!icon.isFile || icon.length() != bytes.size.toLong()) {
+            val temp = File(stateDir, "${icon.name}.part")
+            temp.writeBytes(bytes)
+            if (icon.exists()) icon.delete()
+            if (!temp.renameTo(icon)) {
+                icon.writeBytes(bytes)
+                temp.delete()
+            }
+        }
+        return icon
     }
 
     fun uninstall(process: Process?) {

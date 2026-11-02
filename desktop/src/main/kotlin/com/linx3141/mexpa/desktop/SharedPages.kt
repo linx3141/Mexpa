@@ -154,9 +154,10 @@ fun SharedThemeSettingsPage(state: DesktopAppState, onBack: () -> Unit) {
 }
 
 @Composable
-fun SharedSettingsPage(state: DesktopAppState) {
+fun SharedSettingsPage(state: DesktopAppState, bottomPadding: Dp = 0.dp) {
     var ui by remember { mutableStateOf(SettingsUiState(versionName = AppVersion.name)) }
     SettingsScreenContent(
+        bottomPadding = bottomPadding,
         state = ui,
         capabilities = SettingsCapabilities(
             tunMode = false,
@@ -287,12 +288,13 @@ fun SharedHomePage(
 }
 
 @Composable
-fun SharedProxyPage(state: DesktopAppState, controller: LinuxProxyController) {
+fun SharedProxyPage(state: DesktopAppState, controller: LinuxProxyController, bottomPadding: Dp = 0.dp) {
     var sortOption by remember { mutableStateOf(0) }
     var singleColumn by remember { mutableStateOf(false) }
     var showGroupIcons by remember { mutableStateOf(true) }
     val proxyState by controller.data.proxyState.collectAsState()
     ProxyScreenContent(
+        bottomPadding = bottomPadding,
         uiState = proxyState,
         sortOption = sortOption,
         singleColumn = singleColumn,
@@ -314,10 +316,11 @@ private fun subscriptionUiState(state: DesktopAppState): SubscriptionUiState {
 }
 
 @Composable
-fun SharedSubscriptionPage(state: DesktopAppState) {
+fun SharedSubscriptionPage(state: DesktopAppState, bottomPadding: Dp = 0.dp) {
     val repository = state.subscriptionRepository
     val uiState = subscriptionUiState(state)
     SubscriptionScreenContent(
+        bottomPadding = bottomPadding,
         uiState = uiState,
         onNavigateAdd = { state.open(SubPage.SubscriptionAdd) },
         onNavigateEdit = { id ->
