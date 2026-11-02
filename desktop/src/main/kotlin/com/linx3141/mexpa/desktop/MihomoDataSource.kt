@@ -116,6 +116,9 @@ class MihomoDataSource(private val scope: CoroutineScope) {
     /** /proxies 不含 proxy-provider 节点；这里保存合并来源。 */
     private var providerNodes: Map<String, ProxyNode> = emptyMap()
     private var nodeProviders: Map<String, String> = emptyMap()
+    // 手动测速结果必须跨过 2s 的 /proxies 轮询；provider 节点的 healthcheck
+    // 结果不一定会写回 /providers/proxies 的 history，不能只依赖下一次轮询。
+    private val manualDelays = ConcurrentHashMap<String, Int>()
 
     private val _proxyState = MutableStateFlow(ProxyUiState())
     val proxyState: StateFlow<ProxyUiState> = _proxyState.asStateFlow()
@@ -180,6 +183,7 @@ class MihomoDataSource(private val scope: CoroutineScope) {
             return false
         }
         api = client
+        manualDelays.clear()
         _speed.value = SpeedSnapshot(uploadSpeed = "0 B/s", downloadSpeed = "0 B/s")
         // 页面可能先于 mihomo 就绪打开（日志/连接页进入即订阅），就绪后补上订阅
         if (logWatchers > 0) openLogStream(client)
@@ -209,6 +213,7 @@ class MihomoDataSource(private val scope: CoroutineScope) {
         _connectionState.update { it.copy(isConnected = false) }
         api?.close()
         api = null
+        manualDelays.clear()
         lastConnectionSnapshot = null
         trafficHistory = TrafficHistory()
         _memory.value = MemorySnapshot()
@@ -252,8 +257,14 @@ class MihomoDataSource(private val scope: CoroutineScope) {
         val mode = _homeInfo.value.mode
         val merged = providerNodes + proxies
         _proxyState.update { current ->
-            MihomoApi.buildProxyState(merged, mode, current)
-                .copy(testingGroups = current.testingGroups, testingNodes = current.testingNodes)
+            val built = MihomoApi.buildProxyState(merged, mode, current)
+            val groups = built.groups.map { group ->
+                if (group.all.none { manualDelays.containsKey(it) }) return@map group
+                val delays = group.delays.toMutableMap()
+                group.all.forEach { node -> manualDelays[node]?.let { delays[node] = it } }
+                group.copy(delays = delays.toPersistentMap())
+            }.toPersistentList()
+            built.copy(groups = groups, testingGroups = current.testingGroups, testingNodes = current.testingNodes)
         }
     }
 
@@ -496,6 +507,7 @@ class MihomoDataSource(private val scope: CoroutineScope) {
         scope.launch {
             val provider = nodeProviders[name]
             val delay = if (provider != null) client.testProviderNodeDelay(provider, name) else client.testNodeDelay(name)
+            if (delay != null && delay > 0) manualDelays[name] = delay else manualDelays.remove(name)
             _proxyState.update { state ->
                 val groups = state.groups.map { group ->
                     if (name in group.all) {
@@ -528,6 +540,9 @@ class MihomoDataSource(private val scope: CoroutineScope) {
                         }
                     }.awaitAll()
                 }
+            }
+            results.forEach { (node, delay) ->
+                if (delay != null && delay > 0) manualDelays[node] = delay else manualDelays.remove(node)
             }
             _proxyState.update { state ->
                 val groups = state.groups.map { item ->

@@ -103,9 +103,16 @@ class MihomoApi(
         client.put(baseUrl + path) { authorize() }
     }
 
-    suspend fun testProviderNodeDelay(provider: String, node: String): Int? = runCatching {
+    suspend fun testProviderNodeDelay(
+        provider: String,
+        node: String,
+        timeout: Int = 5000,
+        url: String = "http://www.gstatic.com/generate_204",
+    ): Int? = runCatching {
+        // 与 /proxies/{name}/delay 同一处理函数；缺 timeout/url 会直接 400。
         val response = client.get(
-            baseUrl + "/providers/proxies/${encode(provider)}/${encode(node)}/healthcheck",
+            baseUrl + "/providers/proxies/${encode(provider)}/${encode(node)}/healthcheck" +
+                "?timeout=$timeout&url=${encode(url)}",
         ) { authorize() }
         if (response.status.value !in 200..299) return null
         val element = json.parseToJsonElement(response.bodyAsText()) as? JsonObject ?: return null
