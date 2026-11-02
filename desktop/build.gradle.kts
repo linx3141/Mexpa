@@ -52,7 +52,7 @@ compose.desktop {
 
         nativeDistributions {
             if (isWindowsHost) {
-                targetFormats(TargetFormat.Msi, TargetFormat.Exe)
+                targetFormats(TargetFormat.Exe)
             } else if (isMacHost) {
                 targetFormats(TargetFormat.Dmg)
             } else {

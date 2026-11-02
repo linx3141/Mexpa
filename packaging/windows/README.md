@@ -1,6 +1,6 @@
 # Windows 打包
 
-前提：Windows 10/11 x64、JDK 21（含 jpackage）、Go 1.25、WiX Toolset（仅 MSI）。
+前提：Windows 10/11 x64、JDK 21（含 jpackage）、Go 1.25、WiX Toolset（EXE 安装包）。
 
 ```powershell
 # 构建 mihomo.exe / mexa-transform.exe / 下载 wintun.dll
@@ -9,7 +9,7 @@
 # app-image + zip
 .\desktop\package-windows.ps1
 
-# 额外尝试 MSI + EXE（需要 WiX Toolset）
+# 额外构建 EXE 安装包（需要 WiX Toolset）
 .\desktop\package-windows.ps1 -Installer
 ```
 
@@ -17,7 +17,7 @@
 
 - `desktop/build/Mexpa-windows-x64-1.0.0.zip`
 - app-image：`desktop/build/compose/binaries/main/app/mexpa`
-- MSI / EXE（若安装 WiX）：`desktop/build/compose/binaries/main/{msi,exe}`
+- EXE（若安装 WiX）：`desktop/build/compose/binaries/main/exe`
 
 ## Windows 行为
 

@@ -1,7 +1,7 @@
 param(
     [switch]$Installer
 )
-# 在 Windows 上构建 app-image；-Installer 额外尝试 MSI（需要 WiX Toolset）。
+# 在 Windows 上构建 app-image；-Installer 额外构建 EXE 安装包（需要 WiX Toolset）。
 $ErrorActionPreference = "Stop"
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $Version = "1.0.0"
@@ -30,8 +30,7 @@ try {
     Write-Host "built: $Zip"
 
     if ($Installer) {
-        & .\gradlew.bat :desktop:packageMsi
         & .\gradlew.bat :desktop:packageExe
-        Write-Host "Installer output: desktop/build/compose/binaries/main/{msi,exe}"
+        Write-Host "Installer output: desktop/build/compose/binaries/main/exe"
     }
 } finally { Pop-Location }

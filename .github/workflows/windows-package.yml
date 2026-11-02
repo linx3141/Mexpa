@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build portable + MSI/EXE
+    name: Build portable + EXE
     runs-on: windows-latest
     env:
       MEXPA_SKIP_ANDROID: "1"
@@ -44,11 +44,12 @@ jobs:
           Copy-Item desktop/build/windows-bin/mihomo.exe $app.FullName -Force
           Copy-Item desktop/build/windows-bin/mexpa-transform.exe $app.FullName -Force
           Copy-Item desktop/build/windows-bin/wintun.dll $app.FullName -Force
-          Copy-Item packaging/windows/wintun-LICENSE.txt $app.FullName/wintun-LICENSE.txt -Force
+          Copy-Item packaging/windows/wintun-LICENSE.txt (Join-Path $app.FullName 'wintun-LICENSE.txt') -Force
+          Remove-Item desktop/build/Mexpa-windows-x64.zip -Force -ErrorAction SilentlyContinue
           Compress-Archive -Path (Join-Path $app.FullName '*') -DestinationPath desktop/build/Mexpa-windows-x64.zip
-      - name: Build MSI and EXE installers
+      - name: Build EXE installer
         shell: pwsh
-        run: ./gradlew.bat :desktop:packageMsi :desktop:packageExe
+        run: ./gradlew.bat :desktop:packageExe
       - uses: actions/upload-artifact@v4
         with:
           name: windows-portable
@@ -57,7 +58,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: windows-installers
-          path: |
-            desktop/build/compose/binaries/main/msi/*.msi
-            desktop/build/compose/binaries/main/exe/*.exe
+          path: desktop/build/compose/binaries/main/exe/*.exe
           if-no-files-found: error
