@@ -14,7 +14,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import com.linx3141.mexpa.ui.component.blur.rememberBlurBackdrop
 import top.yukonga.miuix.kmp.blur.layerBackdrop
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -31,9 +30,6 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import com.linx3141.mexpa.ui.component.design.LocalTopBarActions
-import com.linx3141.mexpa.ui.component.design.LocalTopBarDragModifier
-import com.linx3141.mexpa.ui.component.design.rememberTopBarDragModifier
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
@@ -49,6 +45,7 @@ import androidx.compose.ui.platform.ViewConfiguration
 import com.linx3141.mexpa.ui.screen.proxy.LocalProxyIconLoader
 import java.awt.Frame
 import java.awt.event.ComponentAdapter
+import java.awt.event.ComponentEvent
 import androidx.compose.runtime.rememberCoroutineScope
 import java.io.File
 import androidx.compose.runtime.collectAsState
@@ -204,29 +201,15 @@ fun main(args: Array<String>) {
         },
         title = DesktopPlatform.windowTitle,
         icon = painterResource(Res.drawable.mexpa_icon),
-        decoration = WindowDecoration.Undecorated(),
-        // 透明窗口 + 内容圆角裁剪：XWayland 下无边框窗口没有系统圆角，只能自己画。
-        // Windows 也保留透明窗口，避免圆角外被不透明窗口底色填成白色；若遇到个别
-        // 显卡/Wine 的 X_CopyArea 问题，可用 MEXPA_OPAQUE_WINDOW=1 临时退回不透明。
-        transparent = System.getenv("MEXPA_OPAQUE_WINDOW") != "1",
+        decoration = WindowDecoration.SystemDefault,
         visible = windowVisible,
         state = windowState,
     ) {
         LaunchedEffect(window, uiScale) {
-            // 透明窗口的 AWT 底色必须是全透明，否则圆角外会露出默认白色。
-            window.background = java.awt.Color(0, 0, 0, 0)
             window.minimumSize = Dimension(
                 (MIN_WINDOW_WIDTH_DP * uiScale).roundToInt(),
                 (MIN_WINDOW_HEIGHT_DP * uiScale).roundToInt(),
             )
-        }
-        var maximized by remember { mutableStateOf((window.extendedState and Frame.MAXIMIZED_BOTH) != 0) }
-        DisposableEffect(window) {
-            val listener = WindowStateListener { event ->
-                maximized = (event.newState and Frame.MAXIMIZED_BOTH) != 0
-            }
-            window.addWindowStateListener(listener)
-            onDispose { window.removeWindowStateListener(listener) }
         }
         System.getenv("MEXPA_UI_MODE")?.let { mode ->
             runCatching { UiMode.valueOf(mode) }.getOrNull()?.let { state.themeConfig = state.themeConfig.copy(uiMode = it) }
@@ -528,32 +511,11 @@ fun main(args: Array<String>) {
             androidx.compose.foundation.LocalContextMenuRepresentation provides MishkaContextMenuRepresentation,
             LocalViewConfiguration provides desktopViewConfiguration,
             LocalProxyIconLoader provides proxyIconLoader,
-            LocalTopBarActions provides {
-                WindowControlActions(
-                    frame = frame,
-                    onClose = {
-                        if (runtimeBridge.trayAvailable && runtimeBridge.closeToTray) {
-                            runtimeBridge.hideWindow()
-                        } else {
-                            exitApplication()
-                        }
-                    },
-                )
-            },
-            LocalTopBarDragModifier provides { largeTitleBar, collapsedHeight ->
-                rememberTopBarDragModifier(frame, largeTitleBar, collapsedHeight)
-            },
         ) {
             MishkaTheme(themeConfig = state.themeConfig) {
-                val cornerRadius by animateDpAsState(
-                    targetValue = if (maximized) 0.dp else WINDOW_CORNER_RADIUS,
-                    animationSpec = tween(durationMillis = 150),
-                    label = "windowCornerRadius",
-                )
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .clip(RoundedCornerShape(cornerRadius))
                         .background(MishkaColors.surface),
                 ) {
                     DesktopShell(
@@ -570,7 +532,6 @@ fun main(args: Array<String>) {
                         },
                         onStop = controller::stop,
                     )
-                    WindowResizeOverlay(window = frame, enabled = !maximized)
                 }
             }
         }
