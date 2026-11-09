@@ -525,6 +525,7 @@ fun main(args: Array<String>) {
         }
         CompositionLocalProvider(
             LocalDensity provides scaledDensity,
+            androidx.compose.foundation.LocalContextMenuRepresentation provides MishkaContextMenuRepresentation,
             LocalViewConfiguration provides desktopViewConfiguration,
             LocalProxyIconLoader provides proxyIconLoader,
             LocalTopBarActions provides {
