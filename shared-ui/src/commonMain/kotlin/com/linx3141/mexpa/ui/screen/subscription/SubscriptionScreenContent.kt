@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -257,6 +258,8 @@ private fun SubscriptionItem(
     val displayName = subscription.name.ifBlank { stringResource(Res.string.subscription_config) }
     // M3E 用成对的 container/onContainer；Miuix 保持原来的配色不变
     val isMaterial = LocalUiMode.current == UiMode.Material
+    // 操作按钮固定尺寸：文字区域收缩，动作按钮保持 Material 的胶囊/圆形形态。
+    val actionButtonWidth = if (isMaterial) 56.dp else 35.dp
 
     Card(
         modifier = Modifier
@@ -295,10 +298,15 @@ private fun SubscriptionItem(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-        Row {
-
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Column(
-                modifier = Modifier.wrapContentSize()
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 if (subscription.total > 0) {
                     val used = subscription.upload + subscription.download
@@ -308,76 +316,82 @@ private fun SubscriptionItem(
                             FormatUtils.formatBytes(used),
                             FormatUtils.formatBytes(subscription.total)
                         ),
-                        modifier = Modifier.padding(top = 2.dp),
                         fontSize = 12.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         color = MishkaColors.onSurfaceVariantSummary,
                     )
                 } else {
                     Text(
                         text = stringResource(Res.string.subscription_no_traffic),
-                        modifier = Modifier.padding(top = 2.dp),
                         fontSize = 12.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         color = MishkaColors.onSurfaceVariantSummary,
                     )
                 }
-
-                Spacer(Modifier.weight(1f))
 
                 if (subscription.updatedAt > 0) {
                     Text(
                         text = stringResource(Res.string.subscription_updated_at, formatEpochMillisAsLocal(subscription.updatedAt)),
-                        modifier = Modifier.padding(top = 2.dp),
                         fontSize = 12.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         color = MishkaColors.onSurfaceVariantSummary,
                     )
                 }
             }
 
-            Spacer(Modifier.weight(1f))
-
-            if (canEdit) IconButton(
-                onClick = onEdit,
-                minHeight = 35.dp,
-                minWidth = if (isMaterial) 56.dp else 35.dp,
-                backgroundColor = MishkaColors.secondaryContainer,
-                capsule = isMaterial,
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    modifier = Modifier.size(20.dp),
-                    imageVector = AppIcons.MoreCircle,
-                    contentDescription = stringResource(Res.string.common_edit),
-                    tint = if (isMaterial) MishkaColors.onSecondaryContainer else MishkaColors.onSurfaceVariantSummary,
-                )
-            }
-            Spacer(Modifier.width(8.dp))
-            if (canRefresh) IconButton(
-                onClick = onRefresh,
-                enabled = !isLoading && subscription.url.isNotBlank(),
-                minHeight = 35.dp,
-                minWidth = if (isMaterial) 56.dp else 35.dp,
-                backgroundColor = MishkaColors.secondaryContainer,
-                capsule = isMaterial,
-            ) {
-                Icon(
-                    modifier = Modifier.size(20.dp),
-                    imageVector = AppIcons.Refresh,
-                    contentDescription = stringResource(Res.string.common_update),
-                    tint = if (isMaterial) MishkaColors.onSecondaryContainer else MishkaColors.onSurfaceVariantSummary,
-                )
-            }
-            Spacer(Modifier.width(8.dp))
-            if (canDelete) IconButton(
-                onClick = { showDeleteDialog = true },
-                minHeight = 35.dp,
-                minWidth = 35.dp,
-                backgroundColor = if (isMaterial) MishkaColors.errorContainer else MishkaColors.secondaryContainer,
-            ) {
-                Icon(
-                    modifier = Modifier.size(20.dp),
-                    imageVector = AppIcons.Delete,
-                    contentDescription = stringResource(Res.string.common_delete),
-                    tint = if (isMaterial) MishkaColors.onErrorContainer else MishkaColors.onSurfaceVariantSummary,
-                )
+                if (canEdit) IconButton(
+                    onClick = onEdit,
+                    modifier = Modifier.size(actionButtonWidth, 35.dp),
+                    minHeight = 35.dp,
+                    minWidth = actionButtonWidth,
+                    backgroundColor = MishkaColors.secondaryContainer,
+                    capsule = isMaterial,
+                ) {
+                    Icon(
+                        modifier = Modifier.size(20.dp),
+                        imageVector = AppIcons.MoreCircle,
+                        contentDescription = stringResource(Res.string.common_edit),
+                        tint = if (isMaterial) MishkaColors.onSecondaryContainer else MishkaColors.onSurfaceVariantSummary,
+                    )
+                }
+                if (canRefresh) IconButton(
+                    onClick = onRefresh,
+                    modifier = Modifier.size(actionButtonWidth, 35.dp),
+                    enabled = !isLoading && subscription.url.isNotBlank(),
+                    minHeight = 35.dp,
+                    minWidth = actionButtonWidth,
+                    backgroundColor = MishkaColors.secondaryContainer,
+                    capsule = isMaterial,
+                ) {
+                    Icon(
+                        modifier = Modifier.size(20.dp),
+                        imageVector = AppIcons.Refresh,
+                        contentDescription = stringResource(Res.string.common_update),
+                        tint = if (isMaterial) MishkaColors.onSecondaryContainer else MishkaColors.onSurfaceVariantSummary,
+                    )
+                }
+                if (canDelete) IconButton(
+                    onClick = { showDeleteDialog = true },
+                    modifier = Modifier.size(35.dp),
+                    minHeight = 35.dp,
+                    minWidth = 35.dp,
+                    backgroundColor = if (isMaterial) MishkaColors.errorContainer else MishkaColors.secondaryContainer,
+                    capsule = isMaterial,
+                ) {
+                    Icon(
+                        modifier = Modifier.size(20.dp),
+                        imageVector = AppIcons.Delete,
+                        contentDescription = stringResource(Res.string.common_delete),
+                        tint = if (isMaterial) MishkaColors.onErrorContainer else MishkaColors.onSurfaceVariantSummary,
+                    )
+                }
             }
         }
     }

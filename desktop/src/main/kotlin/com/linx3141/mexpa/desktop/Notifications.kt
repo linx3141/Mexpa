@@ -35,10 +35,7 @@ object LinuxNotifications {
             return
         }
         if (DesktopPlatform.isWindows) {
-            val icon = tray ?: return
-            javax.swing.SwingUtilities.invokeLater {
-                runCatching { icon.displayMessage(title, message, TrayIcon.MessageType.INFO) }
-            }
+            Win32Tray.notify(title, message)
             return
         }
         Thread({

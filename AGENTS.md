@@ -237,4 +237,4 @@ CMake `dependsOn(buildMihomo)`，产两个轻量件链 libmihomo.so（IMPORTED +
 
 全部在 [docs/ui-guidelines.md](docs/ui-guidelines.md)：miuix 组件用法、页面骨架与毛玻璃、宽屏与刘海适配、卡片拆 lazy item、ProxyScreen 两条动画约束、Dialog / BottomSheet、语义色 token、Compose 状态形状与帧率级读取。**改 `ui/` 下任何文件前先读它**——其中十余条属于「不读就会写错、写错了编译器不报错」。
 
-**双主题（Miuix / Material 3 Expressive）**的分层、组件适配约定与验证清单在 [docs/ui-theme-modes.md](docs/ui-theme-modes.md)。页面与组件只 import `ui/component/design` 下的同名组件，禁止新增 `miuix.basic.*` / `miuix.preference.*` 直连；默认风格必须是 Miuix 且外观零变化。
+**双主题（Miuix / Material 3 Expressive）**的分层、组件适配约定与验证清单在 [docs/ui-theme-modes.md](docs/ui-theme-modes.md)。页面与组件只 import `ui/component/design` 下的同名组件，禁止新增 `miuix.basic.*` / `miuix.preference.*` 直连；默认风格是 Material 3 Expressive；Miuix 仍保持可切换且外观与旧版逐项一致。

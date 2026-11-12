@@ -3,7 +3,7 @@
 Compose / miuix 相关的全部约定与踩坑约束。改 `app/src/main/kotlin/.../ui/` 下任何文件之前先读本文件；
 其余架构约束在仓库根的 [AGENTS.md](../AGENTS.md)。
 
-- **双主题**：界面风格可在 Miuix（默认）与 Material 3 Expressive 间切换，分层与约定见 [ui-theme-modes.md](ui-theme-modes.md)。页面/组件只 import `ui/component/design` 下的同名组件，不直连 `miuix.basic.*` / `miuix.preference.*`；新增组件必须同时实现两种风格，且 Miuix 分支的默认值与被替换的 miuix 组件逐项一致。
+- **双主题**：界面风格可在 Material 3 Expressive（默认）与 Miuix 间切换，分层与约定见 [ui-theme-modes.md](ui-theme-modes.md)。页面/组件只 import `ui/component/design` 下的同名组件，不直连 `miuix.basic.*` / `miuix.preference.*`；新增组件必须同时实现两种风格，且 Miuix 分支的默认值与被替换的 miuix 组件逐项一致。
 - 所有组件用 miuix（其内部已 squircle 渲染圆角）。返回按钮 `MiuixIcons.Back`；底栏图标 Sidebar / Tune / UploadCloud / Settings；Badge `squircleBackground(color, 3.dp)` + 9.sp Bold Monospace；操作 IconButton `minHeight/minWidth = 35.dp` + `secondaryContainer`。
 - **自定义形状用 squircle modifier**（`top.yukonga.miuix.kmp.squircle.*`，非 miuix 组件的手搓形状不用 `RoundedCornerShape` clip/background）。按性能选：非点击纯色背景 → `squircleBackground`（无 offscreen layer，**不要 clip**）；图片/必须裁剪 → `squircleClip`（一个 offscreen layer）；可点击 → `squircleSurface` + `.clickable{}`（涟漪裁进圆角），条件可点击时退化为 `squircleBackground`。
 - **页面骨架**：Scaffold + TopAppBar(scrollBehavior) + LazyColumn。LazyColumn 必须加 `.scrollEndHaptic().overScrollVertical().nestedScroll(scrollBehavior.nestedScrollConnection)`；`contentPadding` 仅设 top，不设 bottom；首个 item 是 Card/表单时加 `item { Spacer(12.dp) }`，SmallTitle / RestartRequiredHint 开头**不加**（SmallTitle 自带 8dp 上下边距）；末尾统一 `item { Spacer(Modifier.height(24.dp).navigationBarsPadding()) }`。**二级页面签名禁止 `bottomPadding: Dp` 参数**（靠末尾 Spacer 自适应）；**4 个 Pager Tab 例外**——外层 `MainPage` Scaffold 持有 bottomBar，必须接 `bottomPadding` 透传给 `contentPadding`。

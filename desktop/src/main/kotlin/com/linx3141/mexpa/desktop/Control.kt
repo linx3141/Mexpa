@@ -10,6 +10,7 @@ import java.nio.channels.SocketChannel
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import java.util.UUID
 
 /** 运行中实例的本地控制口（Unix domain socket），供 CLI/脚本调用。 */
 object ControlServer {
@@ -17,6 +18,9 @@ object ControlServer {
 
     /** Windows 的 AF_UNIX 兼容性不稳定，控制口改用 loopback TCP；端口写在这个文件。 */
     fun portFile(): Path = DesktopPlatform.stateDir.toPath().resolve("control.port")
+
+    /** Windows 没有 Unix socket 权限模型，控制口另加一次性 token，避免同机其他进程直接驱动开始/停止。 */
+    fun tokenFile(): Path = DesktopPlatform.stateDir.toPath().resolve("control.token")
 
     fun start(handler: (String) -> String): ServerSocketChannel? {
         val path = socketPath()
@@ -38,8 +42,10 @@ object ControlServer {
                 }
             }.getOrNull() ?: return null
         }
+        val token = if (DesktopPlatform.isWindows) UUID.randomUUID().toString() else null
         if (DesktopPlatform.isWindows) {
             runCatching {
+                Files.writeString(tokenFile(), token!!)
                 Files.writeString(portFile(), (channel.localAddress as InetSocketAddress).port.toString())
             }
         } else {
@@ -52,7 +58,18 @@ object ControlServer {
                     client.use { socket ->
                         val reader = Channels.newInputStream(socket).bufferedReader()
                         val writer = Channels.newOutputStream(socket).bufferedWriter()
-                        val line = reader.readLine().orEmpty().trim()
+                        val line = if (token == null) {
+                            reader.readLine().orEmpty().trim()
+                        } else {
+                            val supplied = reader.readLine().orEmpty().trim()
+                            if (supplied != token) {
+                                writer.write("error: unauthorized")
+                                writer.newLine()
+                                writer.flush()
+                                return@runCatching
+                            }
+                            reader.readLine().orEmpty().trim()
+                        }
                         val response = if (line.isEmpty()) "error: empty command" else handler(line)
                         writer.write(response)
                         writer.newLine()
@@ -69,6 +86,7 @@ object ControlServer {
         runCatching { channel.close() }
         runCatching { Files.deleteIfExists(socketPath()) }
         runCatching { Files.deleteIfExists(portFile()) }
+        runCatching { Files.deleteIfExists(tokenFile()) }
     }
 }
 
@@ -78,10 +96,14 @@ object ControlClient {
         if (DesktopPlatform.isWindows) {
             val port = runCatching { Files.readString(ControlServer.portFile()).trim().toInt() }.getOrNull()
                 ?: return null
+            val token = runCatching { Files.readString(ControlServer.tokenFile()).trim() }.getOrNull()
+                ?.takeIf { it.isNotEmpty() } ?: return null
             return runCatching {
                 SocketChannel.open().use { channel ->
                     channel.connect(InetSocketAddress(InetAddress.getByName("127.0.0.1"), port))
                     val writer = Channels.newOutputStream(channel).bufferedWriter()
+                    writer.write(token)
+                    writer.newLine()
                     writer.write(command)
                     writer.newLine()
                     writer.flush()

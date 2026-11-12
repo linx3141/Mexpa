@@ -23,4 +23,4 @@
 
 ## 构建
 
-见 `packaging/windows/README.md`，或 `.github/workflows/windows-package.yml`。
+见 `packaging/windows/README.md`，或 `.github/workflows/build.yml`。

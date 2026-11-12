@@ -1,6 +1,6 @@
 # 双主题：Miuix / Material 3 Expressive
 
-界面支持两套风格，默认 Miuix（与改造前逐像素一致）。风格是**用户级设置**，存在
+界面支持 Material 3 Expressive（默认）与 Miuix 两套风格；Miuix 保留与改造前逐像素一致的外观。风格是**用户级设置**，存在
 `PlatformStorage` 的 `theme_ui_mode`（`miuix` / `material`），入口在「外观与主题 → 界面与效果 →
 界面风格」。参考实现是 KernelSU 的 `UiMode` + `LocalUiMode` + `KernelSUTheme` 三分法。
 
@@ -83,7 +83,7 @@ Mishka 没有像 KernelSU 那样把每个页面复制成 `*Miuix.kt`/`*Material.
 
 见根目录 AGENTS.md「双主题验证」一节；核心是**同一组操作在两套风格下各做一遍**：
 
-- 冷启动：默认 Miuix 外观与改造前一致（颜色、间距、圆角、模糊、底栏、折叠顶栏）。
+- 冷启动：默认 Material 3 Expressive；Miuix 外观与改造前一致（颜色、间距、圆角、模糊、底栏、折叠顶栏）。
 - 外观与主题 → 界面风格 → Material：整棵树立刻换成 M3E，无需重启；杀进程重开仍是 Material。
 - 两套风格下分别过 4 个 Tab、二级页（外观/网络/订阅/代理/日志/连接/关于）、弹窗与底部面板，
   检查文字/图标可读、无 miuix 与 M3 混排导致的错色、无崩溃。

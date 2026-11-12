@@ -9,6 +9,7 @@ import java.io.File
 object Autostart {
     private const val RUN_KEY = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"
     private const val RUN_VALUE = "Mexpa"
+    private val TASK_NAME: String get() = "MexpaAutostart-" + System.getProperty("user.name")
 
     fun desktopFile(): File = File(DesktopPlatform.configDir.parentFile, "autostart/mexpa.desktop")
     private fun launchAgentFile(): File = File(
@@ -17,7 +18,7 @@ object Autostart {
     )
 
     fun isEnabled(): Boolean = when {
-        DesktopPlatform.isWindows -> run("reg", "query", RUN_KEY, "/v", RUN_VALUE).ok
+        DesktopPlatform.isWindows -> taskEnabled() || legacyRunEnabled()
         DesktopPlatform.isMac -> launchAgentFile().isFile
         else -> desktopFile().isFile
     }
@@ -26,12 +27,15 @@ object Autostart {
 
     fun setEnabled(enabled: Boolean): Boolean {
         if (DesktopPlatform.isWindows) {
-            if (!enabled) {
-                run("reg", "delete", RUN_KEY, "/v", RUN_VALUE, "/f")
-                return true
-            }
             val command = launcherCommand() ?: return false
-            return run("reg", "add", RUN_KEY, "/v", RUN_VALUE, "/t", "REG_SZ", "/d", "$command --minimized", "/f").ok
+            // 登录任务使用“最高权限”，否则 HKCU Run 只能以普通权限启动，开 TUN 时仍会弹 UAC。
+            // 注册任务需要管理员；通过 runas 弹一次 UAC，之后登录不再需要。
+            val script = if (enabled) {
+                windowsEnableScript(command)
+            } else {
+                windowsDisableScript()
+            }
+            return WindowsElevation.runElevatedPowerShell(script)
         }
         val file = desktopFile()
         if (DesktopPlatform.isMac) {
@@ -82,6 +86,38 @@ object Autostart {
         )
         return true
     }
+
+
+    private fun taskEnabled(): Boolean =
+        run("schtasks", "/Query", "/TN", TASK_NAME, "/FO", "LIST").ok
+
+    private fun legacyRunEnabled(): Boolean =
+        run("reg", "query", RUN_KEY, "/v", RUN_VALUE).ok
+
+    private fun windowsEnableScript(command: String): String {
+        val taskName = psQuote(TASK_NAME)
+        val executable = psQuote(unquote(command))
+        return """
+            ${'$'}ErrorActionPreference = 'Stop'
+            ${'$'}action = New-ScheduledTaskAction -Execute '$executable' -Argument '--minimized'
+            ${'$'}trigger = New-ScheduledTaskTrigger -AtLogOn
+            ${'$'}currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+            ${'$'}principal = New-ScheduledTaskPrincipal -UserId ${'$'}currentUser -LogonType Interactive -RunLevel Highest
+            Register-ScheduledTask -TaskName '$taskName' -Action ${'$'}action -Trigger ${'$'}trigger -Principal ${'$'}principal -Force | Out-Null
+            Remove-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'Mexpa' -ErrorAction SilentlyContinue
+        """.trimIndent()
+    }
+
+    private fun windowsDisableScript(): String = """
+        ${'$'}ErrorActionPreference = 'SilentlyContinue'
+        Unregister-ScheduledTask -TaskName '${psQuote(TASK_NAME)}' -Confirm:${'$'}false
+        Remove-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'Mexpa'
+    """.trimIndent()
+
+    private fun unquote(value: String): String =
+        value.trim().removeSurrounding("\"", "\"")
+
+    private fun psQuote(value: String): String = value.replace("'", "''")
 
     private fun launcherCommand(): String? {
         System.getenv("APPIMAGE")?.takeIf { File(it).isFile }?.let { return quote(it) }

@@ -62,6 +62,26 @@ object WindowsElevation {
         }.getOrDefault(false)
     }
 
+
+    /** 以管理员身份运行一段 PowerShell（会弹 UAC）；用于注册“最高权限”的登录任务。 */
+    fun runElevatedPowerShell(script: String): Boolean {
+        if (!DesktopPlatform.isWindows) return false
+        return runCatching {
+            val systemRoot = System.getenv("SystemRoot") ?: "C:\\Windows"
+            val powershell = File(systemRoot, "System32/WindowsPowerShell/v1.0/powershell.exe").absolutePath
+            val parameters = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command " + quoteArg(script)
+            val result = shell32.ShellExecuteW(
+                null,
+                WString("runas"),
+                WString(powershell),
+                WString(parameters),
+                WString(File(System.getProperty("user.dir")).absolutePath),
+                1,
+            )
+            Pointer.nativeValue(result) > 32
+        }.getOrDefault(false)
+    }
+
     /** Windows command line argument quoting; paths/classpaths can contain spaces. */
     private fun quoteArg(value: String): String {
         if (value.isEmpty()) return "\"\""

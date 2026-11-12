@@ -116,6 +116,7 @@ class MihomoDataSource(private val scope: CoroutineScope) {
     /** /proxies 不含 proxy-provider 节点；这里保存合并来源。 */
     private var providerNodes: Map<String, ProxyNode> = emptyMap()
     private var nodeProviders: Map<String, String> = emptyMap()
+    private var providerNames: Set<String> = emptySet()
     // 手动测速结果必须跨过 2s 的 /proxies 轮询；provider 节点的 healthcheck
     // 结果不一定会写回 /providers/proxies 的 history，不能只依赖下一次轮询。
     private val manualDelays = ConcurrentHashMap<String, Int>()
@@ -290,7 +291,16 @@ class MihomoDataSource(private val scope: CoroutineScope) {
             }
         }.sortedBy { it.name }
         _providerState.update { it.copy(providers = items.toPersistentList()) }
-        providerNodes = providers.providers.values.flatMap { it.proxies }.associateBy { it.name }
+        val nextProviderNames = providers.providers.keys.toSet()
+        val nextProviderNodes = providers.providers.values.flatMap { it.proxies }.associateBy { it.name }
+        // 手动测速结果只对当前 provider 节点有效；切订阅/换 provider 后同名的旧结果必须丢弃。
+        if (nextProviderNames != providerNames) {
+            manualDelays.clear()
+        } else {
+            manualDelays.keys.retainAll(nextProviderNodes.keys)
+        }
+        providerNames = nextProviderNames
+        providerNodes = nextProviderNodes
         nodeProviders = providers.providers.values.flatMap { provider ->
             provider.proxies.map { it.name to provider.name }
         }.toMap()

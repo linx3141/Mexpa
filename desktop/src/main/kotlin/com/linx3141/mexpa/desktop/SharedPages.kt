@@ -30,6 +30,7 @@ import com.linx3141.mexpa.ui.component.design.OverlayDropdownPreference
 import com.linx3141.mexpa.ui.component.design.SmallTitle
 import com.linx3141.mexpa.ui.component.design.SwitchPreference
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -1218,6 +1219,30 @@ fun SharedNetworkPage(
         if (granting) return
         granting = true
         grantMessage = null
+        val windowsNeedsElevation = DesktopPlatform.isWindows &&
+            controller.tunCapability(state.binaryPath) == TunCapability.MissingCapability
+        if (windowsNeedsElevation) {
+            // Windows 不能原地提升当前进程；先保存意图，再通过 UAC 拉起管理员实例。
+            val previous = state.linuxSettings.tunEnabled
+            if (enableAfter) state.updateLinuxSettings(state.linuxSettings.copy(tunEnabled = true))
+            scope.launch {
+                val launched = withContext(Dispatchers.IO) {
+                    WindowsElevation.relaunchElevated(state.binaryPath)
+                }
+                if (launched) {
+                    grantMessage = "已请求管理员权限，Mexpa 将自动重新打开…"
+                    delay(900)
+                    kotlin.system.exitProcess(0)
+                } else {
+                    if (enableAfter) {
+                        state.updateLinuxSettings(state.linuxSettings.copy(tunEnabled = previous))
+                    }
+                    grantMessage = "未获得管理员权限，TUN 未启用"
+                    granting = false
+                }
+            }
+            return
+        }
         scope.launch {
             val result = withContext(Dispatchers.IO) { controller.grantTunCapability(state.binaryPath) }
             refreshTunState()

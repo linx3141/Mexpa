@@ -150,7 +150,7 @@ Linux 设置页通过能力门控隐藏 TUN / ROOT / VPN / 分应用代理 / Wi-
 
 ## Linux 打包
 
-已提供 x86_64 的 AppImage、deb、rpm、Arch 包构建脚本（见 [packaging/README.md](packaging/README.md)），以及 GitHub Actions 工作流 `.github/workflows/linux-packages.yml`。TUN 在 AppImage 下会把内核复制到用户目录再授权；deb/rpm/Arch 的 post-install 会直接 setcap。
+已提供 x86_64 的 AppImage、deb、rpm、Arch 包构建脚本（见 [packaging/README.md](packaging/README.md)），以及 GitHub Actions 工作流 `.github/workflows/build.yml`。TUN 在 AppImage 下会把内核复制到用户目录再授权；deb/rpm/Arch 的 post-install 会直接 setcap。
 
 
 ## Windows

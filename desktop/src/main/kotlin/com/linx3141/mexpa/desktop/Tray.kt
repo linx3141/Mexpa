@@ -25,28 +25,13 @@ object LinuxTray {
         if (!SystemTray.isSupported()) return null
         val image = loadIcon() ?: return null
         if (DesktopPlatform.isWindows) {
-            val trayIcon = TrayIcon(image, "Mexpa")
-            trayIcon.isImageAutoSize = true
-            trayIcon.addActionListener(ActionListener {
-                javax.swing.SwingUtilities.invokeLater(onShow)
-            })
-            trayIcon.addMouseListener(object : java.awt.event.MouseAdapter() {
-                // Win32 的右键触发在 mouseReleased；press+release 都处理会弹两次：
-                // 第一次菜单选完后 release 又弹出第二个，看起来像“菜单被替换”。
-                override fun mouseReleased(e: java.awt.event.MouseEvent) {
-                    if (e.isPopupTrigger) {
-                        Win32TrayMenu.show(
-                            onShow = { javax.swing.SwingUtilities.invokeLater(onShow) },
-                            onStart = { javax.swing.SwingUtilities.invokeLater(onStart) },
-                            onStop = { javax.swing.SwingUtilities.invokeLater(onStop) },
-                            onExit = { javax.swing.SwingUtilities.invokeLater(onExit) },
-                        )
-                    }
-                }
-            })
-            runCatching { SystemTray.getSystemTray().add(trayIcon) }
-            LinuxNotifications.attach(trayIcon)
-            return trayIcon
+            Win32Tray.install(
+                onShow = { javax.swing.SwingUtilities.invokeLater(onShow) },
+                onStart = { javax.swing.SwingUtilities.invokeLater(onStart) },
+                onStop = { javax.swing.SwingUtilities.invokeLater(onStop) },
+                onExit = { javax.swing.SwingUtilities.invokeLater(onExit) },
+            )
+            return null
         }
         val popup = PopupMenu()
         // AWT 托盘事件在 AWT EventQueue 上，Compose 的窗口/状态必须在 EDT 上改。
@@ -75,6 +60,10 @@ object LinuxTray {
     }
 
     fun uninstall(icon: TrayIcon?) {
+        if (DesktopPlatform.isWindows) {
+            runCatching { Win32Tray.uninstall() }
+            return
+        }
         if (icon == null) return
         runCatching { SystemTray.getSystemTray().remove(icon) }
     }

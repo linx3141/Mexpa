@@ -16,4 +16,4 @@
 - **AppIndicator 托盘**：需要宿主安装 `python3-gi` + `libayatana-appindicator3`；deb/rpm/Arch 已作为推荐/可选依赖声明，缺失时回退 AWT。
 - **glibc**：`package-linux.sh` 现在优先用 Adoptium 21 打包（runtime 最高 GLIBC_2.15），兼容 Ubuntu 22.04 / Debian 12 / RHEL 9 等；不要用发行版自带的新 JDK（Arch JDK 27 需要 GLIBC_2.38）。
 - **架构**：当前只打 x86_64；arm64 需要单独 JDK/Skiko/mihomo 构建环境。
-- **GitHub Actions**：`.github/workflows/linux-packages.yml` 已加入 AppImage、deb、rpm、Arch 四个构建任务（未在本机验证）。
+- **GitHub Actions**：`.github/workflows/build.yml` 已加入 AppImage、deb、rpm、Arch 四个构建任务（未在本机验证）。

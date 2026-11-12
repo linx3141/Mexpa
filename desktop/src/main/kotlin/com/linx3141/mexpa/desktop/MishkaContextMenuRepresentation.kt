@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.linx3141.mexpa.ui.component.ListPopupDefaults.MenuPositionProvider
@@ -50,19 +51,30 @@ val MishkaContextMenuRepresentation: ContextMenuRepresentation = object : Contex
             ) {
                 ListPopupColumn {
                     entries.forEachIndexed { index, item ->
-                        DropdownImpl(
-                            text = item.label,
-                            optionSize = entries.size,
-                            isSelected = false,
-                            index = index,
-                            onSelectedIndexChange = {
-                                state.status = ContextMenuState.Status.Closed
-                                item.onClick()
-                            },
-                        )
+                        val enabled = item.isEnabled()
+                        Box(Modifier.alpha(if (enabled) 1f else 0.38f)) {
+                            DropdownImpl(
+                                text = item.label,
+                                optionSize = entries.size,
+                                isSelected = false,
+                                index = index,
+                                onSelectedIndexChange = {
+                                    if (!enabled) return@DropdownImpl
+                                    state.status = ContextMenuState.Status.Closed
+                                    item.onClick()
+                                },
+                            )
+                        }
                     }
                 }
             }
         }
     }
 }
+
+
+/** ContextMenuItem.enabled 是 foundation 的 internal 属性，公开 API 只暴露 mangled accessor。 */
+private fun ContextMenuItem.isEnabled(): Boolean =
+    runCatching {
+        javaClass.getMethod("contextMenuItemBaseClassEnabled").invoke(this) as Boolean
+    }.getOrDefault(true)
